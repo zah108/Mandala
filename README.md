@@ -1,6 +1,8 @@
-# 🎨 Mandala Generator
+# 🎨 Генератор мандал (Mandala Generator)
 
 Процедурный генератор мандал на Python с использованием библиотеки `turtle`. Создаёт уникальные симметричные рисунки с настраиваемыми стилями, цветами и геометрией.
+
+Код написан с использованием LLM.
 
 ![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
