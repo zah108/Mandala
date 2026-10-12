@@ -42,7 +42,7 @@ pip install Pillow
 ### Быстрый старт
 
 ```bash
-python mandala-29.py
+python mandala.py
 ```
 
 Программа автоматически:
