@@ -11,9 +11,9 @@
 
 <div align="center">
 
-<img src="img/all-palette.png" width="400" alt="mandala all palette">
+<img src="img/all-palette.png" width="300" alt="mandala all palette">
 &nbsp; &nbsp; &nbsp; &nbsp;
-<img src="img/warm_soft.png" width="400" alt="mandala warm soft">
+<img src="img/warm_soft.png" width="300" alt="mandala warm soft">
 
 </div>
 
