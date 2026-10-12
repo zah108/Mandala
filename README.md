@@ -7,6 +7,16 @@
 ![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+## 🖼️ Примеры
+
+<div align="center">
+
+<img src="img/all-palette.png" width="400" alt="mandala all palette">
+&nbsp; &nbsp; &nbsp; &nbsp;
+<img src="img/warm_soft.png" width="400" alt="mandala warm soft">
+
+</div>
+
 ## ✨ Возможности
 
 - **11 стилей центра**: радиальные лучи, концентрические круги, спираль, внутренние петли, мишень, звезда Давида, символ Ом, цветок, лотос, солнце, узел
