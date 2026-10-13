@@ -3,7 +3,7 @@
 Процедурный генератор мандал на Python с использованием библиотеки `turtle`. Создаёт уникальные симметричные рисунки с настраиваемыми стилями, цветами и геометрией.
 Использование библиотеки `turtle` позволяет наблюдать за процессом рисования.
 
-Код написан с использованием LLM.
+Код написан с использованием LLM (Large Language Model).
 
 ![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -42,7 +42,7 @@
 ### Установка зависимостей
 
 ```bash
-pip install Pillow
+pip install -r requirements.txt
 ```
 
 Для экспорта в PDF установите Ghostscript:
