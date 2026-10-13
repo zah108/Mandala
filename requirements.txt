@@ -1,0 +1,4 @@
+# Requirements for Mandala Generator
+# Install with: pip install -r requirements.txt
+
+Pillow>=9.0.0
