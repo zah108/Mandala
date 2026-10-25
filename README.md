@@ -9,6 +9,19 @@ detailed log to a text file.
 
 The code was written using LLM (Large Language Model).
 
+![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+## 🖼️ Examples
+
+<div align="center">
+
+<img src="all-palette.png" width="300" alt="mandala all palette">
+&nbsp; &nbsp; &nbsp; &nbsp;
+<img src="warm_soft.png" width="300" alt="mandala warm soft">
+
+</div>
+
 ---
 
 ## Table of contents
