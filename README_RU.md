@@ -9,6 +9,19 @@
 
 Код написан с использованием LLM (Large Language Model)
 
+![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+## 🖼️ Примеры
+
+<div align="center">
+
+<img src="list-1.jpg" width="300" alt="mandala all palette">
+&nbsp; &nbsp; &nbsp; &nbsp;
+<img src="list-2.jpg" width="300" alt="mandala warm soft">
+
+</div>
+
 ---
 
 ## Содержание
