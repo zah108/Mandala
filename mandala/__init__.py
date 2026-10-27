@@ -1,0 +1,1 @@
+"""Mandala Generator (package edition)."""
