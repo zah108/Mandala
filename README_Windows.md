@@ -25,6 +25,7 @@ Windows 10 and 11 (64-bit) are supported.
 7. [Troubleshooting](#troubleshooting)
 8. [Building from source](#building-from-source)
 9. [Repository layout](#repository-layout)
+10. [Appendix: styles and palettes](#appendix-styles-and-palettes)
 
 ---
 
@@ -161,8 +162,22 @@ CENTER_7 = 0     ; the "Om" symbol is never picked
 LAYER_5 = 3.0    ; "Leaf with vein (45°)" is three times as likely
 ```
 
-Weight edits made in the settings window are preserved — they are carried
-over to the file on every save.
+The `[Веса цветов]` section works the same way for individual palette
+colors: `0` excludes a color, `2` makes it twice as likely:
+
+```ini
+[Веса цветов]
+WARM_SOFT_#e8a87c = 0     ; this color is never picked
+COOL_BRIGHT_#3d6a99 = 2.0 ; twice as likely
+```
+
+**Edits are never lost:** the settings window updates known values in
+place and keeps your comments, line order and unknown lines. Editing the
+file in Notepad while the program is closed is always safe. The full
+reference of styles and colors is in the
+[appendix](#appendix-styles-and-palettes) — and right inside `config.ini`,
+where every style number and every palette color is listed as a commented
+reference line.
 
 **Resetting to defaults** — delete a parameter from the file, or the whole
 `config.ini` (it is recreated on the next launch).
@@ -267,6 +282,85 @@ If for some reason you need the `cairocffi` variant instead of `pycairo`:
 `windows\update_cairo_dlls.ps1` downloads the required Cairo DLLs (MSYS2)
 into `windows\cairo_dlls\`, and the spec includes them in the build
 automatically.
+
+---
+
+## Appendix: styles and palettes
+
+All names come from `config.py`. Weights are set by number in the
+`[Веса стилей]` section: `CENTER_<n>`, `BAND_<n>`, `LAYER_<n>`.
+
+### Center patterns (`CENTER_<n>`)
+
+| # | Pattern |
+| --- | --- |
+| 1 | Radial rays |
+| 2 | Concentric circles |
+| 3 | Spiral |
+| 4 | Inner loops |
+| 5 | Bullseye (dense center) |
+| 6 | Star of David (outer rays) |
+| 7 | Om |
+| 8 | Flower |
+| 9 | Lotus |
+| 10 | Sun |
+| 11 | Knot |
+
+### Separator bands (`BAND_<n>`)
+
+| # | Band |
+| --- | --- |
+| 1 | Straight strokes |
+| 2 | Small circles (sparse) |
+| 3 | Zigzag |
+| 4 | Double circles |
+| 5 | Double strokes |
+| 6 | Circles |
+| 7 | Squares |
+| 8 | Semicircles |
+| 9 | Small circles 2 |
+| 10 | Wave |
+| 11 | Diamonds |
+| 12 | Double wave |
+
+### Petal layers (`LAYER_<n>`)
+
+| # | Layer |
+| --- | --- |
+| 1 | Flame with dots |
+| 2 | Double rings |
+| 3 | Leaf in leaf with vein |
+| 4 | Classic leaf with pistil |
+| 5 | Leaf with vein (45°) |
+| 6 | Large half-leaf with small ones |
+| 7 | Double leaf |
+| 8 | Leaf, pistil with three dots |
+| 9 | Triple leaf |
+| 10 | Half-leaf (triple pistil) |
+| 11 | Double half-leaf |
+| 12 | Leaf with veins |
+| 13 | Fan (no center) |
+| 14 | Double half-leaf with pistil |
+| 15 | Double half-leaf (with dot) |
+| 16 | Triple rhombus with pistil |
+| 17 | Double leaf with dot |
+
+### Palettes (`PALETTE_CHOICE`)
+
+Each family contains 11 colors; weight keys in `[Веса цветов]` are
+`<FAMILY>_<#hex>`.
+
+**warm_soft** — warm soft (pastel):
+`#e8a87c #e6b8b0 #f0d8a8 #d9b8a3 #d4c5a0 #c9b7a3 #ead4b8 #e3c4a8 #dcc0a0 #e0cbb0 #d8c8b0`
+
+**cool_soft** — cool soft (pastel):
+`#a8c5a0 #8fbcd4 #b8a4c9 #9bb8a3 #a9a3c9 #c3d4c0 #a8bfd0 #b0c9b8 #9fb8c4 #bcb0d0 #a4bcc9`
+
+**warm_bright** — warm bright:
+`#f4a261 #e76f51 #e9c46a #bc4749 #bc6c25 #d97642 #c98a3f #d94f2b #e08544 #a83e2c #c25a35`
+
+**cool_bright** — cool bright:
+`#2a9d8f #3a6673 #8ab17d #6a994e #3d6a99 #7f63a8 #4d8fa8 #2f7a6b #5a4a8f #3a8fa0 #4a7d8f`
 
 ---
 

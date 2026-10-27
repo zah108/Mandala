@@ -110,6 +110,9 @@ check(Config.DRAW_SPEED_LEVEL == 15 and Config.BG_COLOR == "white", "значе�
 text = open(tpl, encoding="utf-8-sig").read()
 check("[Общие]" in text and "[Веса стилей]" in text, "в шаблоне есть все секции")
 check("DRAW_SPEED_LEVEL = 15" in text, "в шаблоне есть активные параметры")
+check("Радиальные лучи" in text and "Солнце" in text, "в шаблоне есть справочник центров")
+check("[Веса цветов]" in text, "в шаблоне есть секция весов цветов")
+check("; WARM_SOFT_#e8a87c = 1.0" in text, "цвета перечислены в шаблоне")
 
 # 6. save_values сохраняет и восстанавливает -------------------------------
 section("save_values")
@@ -132,6 +135,58 @@ check(app_paths.is_frozen() is False, "dev: not frozen")
 check(app_paths.images_dir().endswith("img"), "dev: img внутри пакета")
 check(app_paths.logs_dir().endswith("log"), "dev: log внутри пакета")
 check(app_paths.config_path().endswith("config.ini"), "путь config.ini корректен")
+
+# 8. Веса цветов -----------------------------------------------------------
+section("Веса цветов")
+ini_colors = temp_ini(
+    "[Веса цветов]\n"
+    "WARM_SOFT_#E8A87C = 0\n"
+    "COOL_BRIGHT_#2a9d8f = 2.5\n"
+    "WARM_BRIGHT_#неттакого = 2\n"
+)
+warn = settings.apply_user_settings(ini_path=ini_colors)
+check(any("неттакого" in w.lower() for w in warn), "несуществующий цвет даёт предупреждение")
+target = [c for c in Config.COLOR_FAMILIES["warm_soft"]["colors"]
+          if c["hex"] == "#e8a87c"][0]
+check(target["weight"] == 0.0, "вес цвета применён (hex без учёта регистра)")
+check(Config.COLOR_FAMILIES["cool_bright"]["colors"][0]["weight"] == 2.5,
+      "вес 2.5 применён к другому семейству")
+warn = settings.apply_user_settings(ini_path=missing)
+check(Config.COLOR_FAMILIES["warm_soft"]["colors"][0]["weight"] == 1.0,
+      "сброс к умолчаниям возвращает вес цвета")
+
+# 9. Недеструктивное сохранение -------------------------------------------
+section("Недеструктивная запись (save_values)")
+work = temp_ini("")
+custom = (
+    "[Общие]\n"
+    "WINDOW_SIZE = 900\n"
+    "; мой любимый комментарий\n"
+    "MY_EXPERIMENT = hello\n"
+    "\n"
+    "[Веса стилей]\n"
+    "CENTER_2 = 3.0\n"
+    "; CENTER_3 = 1.0\n"
+)
+with open(work, "w", encoding="utf-8") as f:
+    f.write(custom)
+warn = settings.apply_user_settings(ini_path=work)
+check(any("MY_EXPERIMENT" in w for w in warn),
+      "незнакомый ключ даёт предупреждение при чтении")
+settings.save_values({"DRAW_SPEED_LEVEL": "9"}, path=work)
+text2 = open(work, encoding="utf-8-sig").read()
+check("; мой любимый комментарий" in text2, "комментарий пользователя сохранён")
+check("MY_EXPERIMENT = hello" in text2, "незнакомый ключ сохранён")
+check("WINDOW_SIZE = 900" in text2, "нетронутое значение не изменено")
+check("DRAW_SPEED_LEVEL = 9" in text2, "новое значение дописано")
+check(any(line.strip() in ("CENTER_2 = 3", "CENTER_2 = 3.0")
+          for line in text2.splitlines()), "активный вес стиля сохранён")
+check("; CENTER_3 = 1.0" in text2, "закомментированный пример не тронут")
+warn = settings.apply_user_settings(ini_path=work)
+check(Config.DRAW_SPEED_LEVEL == 9 and Config.WINDOW_SIZE == 900,
+      "всё перечитывается после сохранения")
+check(Config.CENTER_STYLES[2]["weight"] == 3.0,
+      "вес стиля перечитался после сохранения")
 
 print("\n" + "=" * 50)
 if FAILED:

@@ -10,6 +10,18 @@ PDF export.
 
 ---
 
+## 2.3 (unreleased)
+
+- `config.ini` is no longer regenerated wholesale when saved from the
+  settings window: known values are updated in place, while user comments,
+  line order and unknown lines are preserved.
+- The generated template now documents every pattern style (centers 1–11,
+  bands 1–12, layers 1–17) next to the weight examples.
+- New `[Веса цветов]` section: per-color palette weights (0 — excluded,
+  2 — twice as likely), keys like `WARM_SOFT_#e8a87c`.
+- README_Windows (EN) / README_Windows_RU (RU): appendix with the full
+  style and palette reference.
+
 ## Windows distribution (2026-10-27)
 
 New: a complete Windows build kit. The program now ships as an

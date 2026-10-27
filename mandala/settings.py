@@ -13,6 +13,7 @@
 import configparser
 import copy
 import os
+import re
 
 from . import app_paths
 from .config import Config
@@ -61,6 +62,7 @@ _PARAMS = {
 
 _SECTION_ORDER = ("Общие", "Рисование", "Раскраска", "Размеры", "Сохранение")
 _WEIGHT_SECTION = "Веса стилей"
+_COLOR_WEIGHT_SECTION = "Веса цветов"
 
 # префикс ключа веса -> словарь стилей Config
 _WEIGHT_TARGETS = (
@@ -255,6 +257,27 @@ def _apply_weight(key, raw):
     return f"{key}: неизвестный вес стиля"
 
 
+def _apply_color_weight(key_upper, raw):
+    """Вес цвета: WARM_SOFT_#E8A87C = 0 и т. п. (регистр hex не важен)."""
+    for family in Config.COLOR_FAMILIES:
+        prefix = family.upper() + "_"
+        if not key_upper.startswith(prefix):
+            continue
+        hex_part = key_upper[len(prefix):].strip()
+        if not hex_part.startswith("#"):
+            hex_part = "#" + hex_part
+        for color in Config.COLOR_FAMILIES[family]["colors"]:
+            if color["hex"].lower() == hex_part.lower():
+                try:
+                    weight = float(str(raw).strip().replace(",", "."))
+                except ValueError:
+                    return f"{key_upper} = {raw!r}: ожидалось число"
+                color["weight"] = max(0.0, min(100.0, weight))
+                return None
+        return f"{key_upper}: цвета {hex_part} нет в палитре {family}"
+    return f"{key_upper}: неизвестный вес цвета (формат <СЕМЕЙСТВО>_<#hex>)"
+
+
 # ---------------------------------------------------------------
 # Чтение config.ini
 # ---------------------------------------------------------------
@@ -311,6 +334,12 @@ def apply_user_settings(overrides=None, ini_path=None):
                     if warning:
                         _warnings.append(warning)
 
+            if parser.has_section(_COLOR_WEIGHT_SECTION):
+                for option, value in parser.items(_COLOR_WEIGHT_SECTION):
+                    warning = _apply_color_weight(option.strip().upper(), value)
+                    if warning:
+                        _warnings.append(warning)
+
     if overrides:
         raw.update({key: str(value) for key, value in overrides.items()})
 
@@ -337,6 +366,58 @@ def ensure_applied():
 # ---------------------------------------------------------------
 # Запись config.ini
 # ---------------------------------------------------------------
+def _styles_reference_lines():
+    """Справочник узоров с номерами — генерируется из config.py."""
+    refs = [
+        "; --- Справочник узоров ---",
+        "; Центр (CENTER_<номер>):",
+    ]
+    for index in sorted(Config.CENTER_STYLES):
+        refs.append(f";   {index} — {Config.CENTER_STYLES[index]['name']}")
+    refs.append("; Ленты (BAND_<номер>):")
+    for index in sorted(Config.BAND_STYLES):
+        refs.append(f";   {index} — {Config.BAND_STYLES[index]['name']}")
+    refs.append("; Уровни (LAYER_<номер>):")
+    for index in sorted(Config.LAYER_STYLES):
+        refs.append(f";   {index} — {Config.LAYER_STYLES[index]['name']}")
+    return refs
+
+
+def _color_weight_section_lines(active_values=None):
+    """Секция [Веса цветов]: по умолчанию всё закомментировано."""
+    lines = [
+        f"[{_COLOR_WEIGHT_SECTION}]",
+        "; Веса отдельных цветов палитры: 0 — цвет не используется,",
+        "; 1 — обычная, 2 — вдвое чаще. Формат: <СЕМЕЙСТВО>_<#hex>.",
+        "; Раскомментируйте строку и поменяйте значение:",
+    ]
+    for family, data in Config.COLOR_FAMILIES.items():
+        comment = data.get("comment", "")
+        lines.append(";")
+        lines.append(f"; {family} — {comment}:")
+        for color in data["colors"]:
+            key = f"{family.upper()}_{color['hex']}"
+            if active_values and key in active_values:
+                lines.append(f"{key} = {active_values[key]}")
+            else:
+                lines.append(f"; {key} = 1.0")
+    return lines
+
+
+def _split_weights(weights):
+    """{ключ: значение} -> (веса стилей, веса цветов)."""
+    style_prefixes = tuple(prefix for prefix, _attr in _WEIGHT_TARGETS)
+    color_prefixes = tuple(family.upper() + "_" for family in Config.COLOR_FAMILIES)
+    styles, colors = {}, {}
+    for key, value in (weights or {}).items():
+        upper = key.upper()
+        if upper.startswith(color_prefixes):
+            colors[key] = value
+        elif upper.startswith(style_prefixes):
+            styles[key] = value
+    return styles, colors
+
+
 def _weight_lines(active_values=None):
     """Строки секции весов.
 
@@ -347,11 +428,12 @@ def _weight_lines(active_values=None):
         f"[{_WEIGHT_SECTION}]",
         "; Вероятности выбора узоров: 0 — узор не используется, 1 — обычная,",
         "; 2 — вдвое чаще. Формат ключа: CENTER_<номер>, BAND_<номер>, LAYER_<номер>.",
-        "; Ниже примеры (раскомментируйте и поменяйте значение):",
-        "; CENTER_1 = 1.0",
-        "; BAND_3 = 0",
-        "; LAYER_5 = 2.0",
     ]
+    lines.extend(_styles_reference_lines())
+    lines.append("; Ниже примеры (раскомментируйте и поменяйте значение):")
+    lines.append("; CENTER_1 = 1.0")
+    lines.append("; BAND_3 = 0")
+    lines.append("; LAYER_5 = 2.0")
     if active_values:
         for key in sorted(active_values):
             lines.append(f"{key} = {active_values[key]}")
@@ -399,7 +481,10 @@ def template_text(values=None, weights=None):
             lines.append(f"{key} = {value}")
         lines.append("")
 
-    lines.extend(_weight_lines(weights))
+    style_weights, color_weights = _split_weights(weights)
+    lines.extend(_weight_lines(style_weights))
+    lines.append("")
+    lines.extend(_color_weight_section_lines(color_weights))
     lines.append("")
     return "\n".join(lines)
 
@@ -423,16 +508,114 @@ def write_template_if_missing(path=None):
     return False
 
 
-def save_values(values, path=None):
-    """Сохраняет значения из окна настроек, не теряя правки весов.
-
-    Файл перегенерируется по шаблону; текущие веса стилей записываются
-    активными значениями, чтобы ручные правки не пропали.
-    """
+def _active_weights():
+    """Все веса, отличные от 1.0: стили и цвета -> {ключ: значение}."""
     weights = {}
     for prefix, attr in _WEIGHT_TARGETS:
         for index, style in getattr(Config, attr).items():
             weight = float(style.get("weight", 1.0))
             if weight != 1.0:
                 weights[f"{prefix}{index}"] = fmt_value(weight)
-    return write_template(path=path, values=values, weights=weights)
+    for family, data in Config.COLOR_FAMILIES.items():
+        for color in data["colors"]:
+            weight = float(color.get("weight", 1.0))
+            if weight != 1.0:
+                weights[f"{family.upper()}_{color['hex']}"] = fmt_value(weight)
+    return weights
+
+
+def save_values(values, path=None):
+    """Сохраняет значения в config.ini, не теряя правки пользователя.
+
+    Файл правится построчно: у известных ключей обновляется значение после
+    «=», недостающие известные ключи дописываются в конец, а комментарии,
+    порядок строк и незнакомые записи остаются как есть. Если файла нет —
+    создаётся полный шаблон.
+    """
+    path = path or app_paths.config_path()
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+
+    targets = current_values()
+    for key, value in (values or {}).items():
+        if key in _PARAMS:
+            targets[key] = str(value)
+    weights = _active_weights()
+    style_weights, color_weights = _split_weights(weights)
+    style_upper = {k.upper(): v for k, v in style_weights.items()}
+    color_upper = {k.upper(): v for k, v in color_weights.items()}
+    targets_upper = {k.upper(): k for k in targets}
+
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        write_template(path, values=targets, weights=weights)
+        return path
+
+    with open(path, encoding="utf-8-sig") as f:
+        lines = f.read().splitlines()
+
+    section_re = re.compile(r"^\s*\[(.+?)\]\s*$")
+    kv_re = re.compile(r"^(\s*)([A-Za-z_][^=;]*?)(\s*=\s*)(.*)$")
+
+    seen_params, style_seen, color_seen = set(), set(), set()
+    style_section = color_section = False
+    out = []
+    for line in lines:
+        stripped = line.strip()
+        header = section_re.match(stripped) if stripped else None
+        if header:
+            name = header.group(1).strip().upper()
+            style_section = name == _WEIGHT_SECTION.upper()
+            color_section = name == _COLOR_WEIGHT_SECTION.upper()
+            out.append(line)
+            continue
+        if stripped and not stripped.startswith((";", "#")):
+            match = kv_re.match(line)
+            if match:
+                key = match.group(2).strip().upper()
+                if key in targets_upper:
+                    seen_params.add(key)
+                    out.append(f"{match.group(1)}{match.group(2)}{match.group(3)}"
+                               f"{targets[targets_upper[key]]}")
+                    continue
+                if style_section and key in style_upper:
+                    style_seen.add(key)
+                    out.append(f"{match.group(1)}{match.group(2)}{match.group(3)}"
+                               f"{style_upper[key]}")
+                    continue
+                if color_section and key in color_upper:
+                    color_seen.add(key)
+                    out.append(f"{match.group(1)}{match.group(2)}{match.group(3)}"
+                               f"{color_upper[key]}")
+                    continue
+        out.append(line)
+
+    # Недостающие обычные параметры — дописываем в конец своими секциями.
+    for section in _SECTION_ORDER:
+        block = [f"{key} = {targets[key]}"
+                 for key in _PARAMS
+                 if _PARAMS[key][0] == section and key.upper() not in seen_params]
+        if block:
+            out.append("")
+            out.append(f"[{section}]")
+            out.extend(block)
+
+    missing_styles = {k: v for k, v in style_weights.items()
+                      if k.upper() not in style_seen}
+    if missing_styles:
+        if not style_section:
+            out.append("")
+            out.append(f"[{_WEIGHT_SECTION}]")
+        for key in sorted(missing_styles):
+            out.append(f"{key} = {missing_styles[key]}")
+
+    missing_colors = {k: v for k, v in color_weights.items()
+                      if k.upper() not in color_seen}
+    if missing_colors:
+        if not color_section:
+            out.append("")
+            out.append(f"[{_COLOR_WEIGHT_SECTION}]")
+        for key in sorted(missing_colors):
+            out.append(f"{key} = {missing_colors[key]}")
+
+    with open(path, "w", encoding="utf-8-sig", newline="\r\n") as f:
+        f.write("\n".join(out) + "\n")
+    return path
