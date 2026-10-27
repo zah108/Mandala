@@ -6,7 +6,13 @@
 ; Установка «для текущего пользователя», без прав администратора.
 
 #define MyAppName "Mandala Generator"
-#define MyAppVersion Trim(FileRead(AddBackslash(SourcePath) + "..\version.txt"))
+; Версия читается из первой строки windows\version.txt.
+#define VerHandle FileOpen(AddBackslash(SourcePath) + "..\version.txt")
+#if VerHandle
+#define MyAppVersion Trim(FileRead(VerHandle))
+#else
+#define MyAppVersion "0.0"
+#endif
 #define MyAppExeName "Mandala.exe"
 
 [Setup]
