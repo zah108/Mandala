@@ -17,6 +17,9 @@ if (-not (Test-Path "$src\Mandala.exe")) {
 
 if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
 robocopy $src $tmp /E /NFL /NDL /NJH /NJS | Out-Null
+# robocopy: коды 0..7 — норма (1 = файлы скопированы), 8+ — ошибка.
+if ($LASTEXITCODE -ge 8) { throw "robocopy завершился с ошибкой: код $LASTEXITCODE" }
+$global:LASTEXITCODE = 0
 
 # Метка портативного режима: данные хранятся рядом с exe, а не в AppData.
 New-Item -ItemType File -Path "$tmp\portable.ini" -Force | Out-Null
@@ -27,3 +30,4 @@ Compress-Archive -Path "$tmp\*" -DestinationPath $zip -Force
 Remove-Item $tmp -Recurse -Force
 
 Write-Host "Portable-версия: $zip"
+exit 0
