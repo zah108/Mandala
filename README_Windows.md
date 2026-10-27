@@ -1,126 +1,134 @@
-# Mandala Generator для Windows
+# Mandala Generator for Windows
 
-Собранная версия для Windows **не требует установленного Python** —
-интерпретатор и все библиотеки упакованы внутрь программы. Скачали,
-установили, запустили.
+The packaged Windows build **does not require Python** — the interpreter
+and all libraries are bundled inside the program. Download, install, run.
 
-Существует в двух видах:
+It comes in two forms:
 
-| Вид | Файл | Для чего |
+| Form | File | Purpose |
 | --- | --- | --- |
-| Инсталлятор | `MandalaSetup-<версия>.exe` | Обычная установка: ярлыки, деинсталляция |
-| Портативная | `Mandala-portable-<версия>.zip` | Без установки: распаковать и запускать |
+| Installer | `MandalaSetup-<version>.exe` | Regular installation: shortcuts, uninstaller |
+| Portable | `Mandala-portable-<version>.zip` | No installation: unzip and run |
 
-Поддерживаются Windows 10 и 11 (64-разрядные).
-
----
-
-## Содержание
-
-1. [Как получить установщик](#как-получить-установщик)
-2. [Установка](#установка)
-3. [Параметры рисования](#параметры-рисования)
-4. [Куда сохраняются мандалы и логи](#куда-сохраняются-мандалы-и-логи)
-5. [Портативная версия](#портативная-версия)
-6. [Удаление](#удаление)
-7. [Частые проблемы](#частые-проблемы)
-8. [Сборка из исходников](#сборка-из-исходников)
-9. [Что где лежит в репозитории](#что-где-лежит-в-репозитории)
+Windows 10 and 11 (64-bit) are supported.
 
 ---
 
-## Как получить установщик
+## Table of contents
 
-### Вариант 1: GitHub Actions — Windows-машина не нужна
+1. [Getting the installer](#getting-the-installer)
+2. [Installation](#installation)
+3. [Drawing parameters](#drawing-parameters)
+4. [Where mandalas and logs are stored](#where-mandalas-and-logs-are-stored)
+5. [Portable version](#portable-version)
+6. [Uninstalling](#uninstalling)
+7. [Troubleshooting](#troubleshooting)
+8. [Building from source](#building-from-source)
+9. [Repository layout](#repository-layout)
 
-Установщик собирается автоматически в облаке GitHub.
+---
 
-1. Разместите проект в репозитории на GitHub:
+## Getting the installer
+
+### Option 1: GitHub Actions — no Windows machine needed
+
+The installer is built automatically in the GitHub cloud.
+
+1. Put the project in a GitHub repository:
 
    ```bash
    git init
    git add .
    git commit -m "Mandala Generator"
-   git remote add origin https://github.com/<логин>/<репозиторий>.git
+   git remote add origin https://github.com/<user>/<repository>.git
    git push -u origin main
    ```
 
-2. Откройте вкладку **Actions** репозитория → слева workflow
-   **Build Windows installer** → кнопка **Run workflow** → **Run workflow**.
-   (Также сборка запускается автоматически при push тега `v*`, например `v1.0.0`.)
+2. Open the repository's **Actions** tab → in the left sidebar select
+   **Build Windows installer** → click **Run workflow** → **Run workflow**.
+   (The build also starts automatically when a tag is pushed, e.g. `2.3`
+   or `v1.0.0`.)
 
-3. Через несколько минут в завершившемся запуске появится артефакт
-   **Mandala-Windows** — скачайте его. Внутри:
+3. After a few minutes the finished run contains an artifact named
+   **Mandala-Windows** — download it. Inside:
 
-   - `MandalaSetup-<версия>.exe` — инсталлятор;
-   - `Mandala-portable-<версия>.zip` — портативная версия.
+   - `MandalaSetup-<version>.exe` — the installer;
+   - `Mandala-portable-<version>.zip` — the portable version.
 
-Нюанс: артефакты доступны только вошедшим в GitHub.
+Note: artifacts are only available to users signed in to GitHub.
 
-### Вариант 2: сборка на любой Windows-машине
+### Option 2: build on any Windows machine
 
-Нужен только Windows 10/11 и интернет — скрипт всё сделает сам:
+All you need is Windows 10/11 and an internet connection — the script
+does everything itself:
 
-1. Скопируйте проект на Windows-машину (например, распакуйте zip репозитория).
-2. Двойной клик по `windows\build_windows.bat`.
-3. Скрипт последовательно: поставит Python (только для сборки), установит
-   зависимости, соберёт приложение (PyInstaller), поставит Inno Setup
-   и соберёт `MandalaSetup-<версия>.exe` и portable-zip.
-4. Готовые файлы появятся в каталоге `dist\` (папка откроется сама).
+1. Copy the project to the Windows machine (e.g. unzip the repository).
+2. Double-click `windows\build_windows.bat`.
+3. The script will, in order: install Python (for building only), install
+   the dependencies, build the application (PyInstaller), install
+   Inno Setup, and produce `MandalaSetup-<version>.exe` plus a portable zip.
+4. The finished files appear in the `dist\` directory (it opens
+   automatically).
 
-Повторная сборка быстрее — Python и окружение сохраняются между запусками.
-
----
-
-## Установка
-
-1. Запустите `MandalaSetup-<версия>.exe`.
-2. Если Windows покажет синее окно **SmartScreen** («Система Windows защитила
-   ваш компьютер») — нажмите **Подробнее** → **Выполнить в любом случае**.
-   Предупреждение появляется потому, что установщик не имеет цифровой
-   подписи (сертификат платный); код при этом обычный.
-3. Следуйте мастеру: установка выполняется **без прав администратора**,
-   по умолчанию в `%LOCALAPPDATA%\Mandala` (в вашем профиле).
-4. По завершении можно сразу запустить программу (галочка в мастере).
-
-Ярлыки: меню **Пуск → Mandala Generator** и, по желанию, на рабочем столе.
-
-При первом запуске откроется **окно настроек** — задайте параметры и нажмите
-«Рисовать».
+Subsequent builds are faster — Python and the environment are kept
+between runs.
 
 ---
 
-## Параметры рисования
+## Installation
 
-Задавать параметры можно двумя способами — они равнозначны и хранятся
-в одном файле `config.ini`.
+1. Run `MandalaSetup-<version>.exe`.
+2. If Windows shows the blue **SmartScreen** window ("Windows protected
+   your PC"), click **More info** → **Run anyway**. The warning appears
+   because the installer has no digital signature (a certificate costs
+   money); the code itself is ordinary.
+3. Follow the wizard: installation runs **without administrator rights**,
+   by default into `%LOCALAPPDATA%\Mandala` (inside your profile).
+4. When done, you can launch the program right away (checkbox in the
+   wizard).
 
-### Окно настроек
+Shortcuts: **Start → Mandala Generator** and, optionally, the desktop.
 
-Показывается при каждом запуске (галочку «Показывать это окно при каждом
-запуске» можно снять — тогда программа сразу начнёт рисовать).
+On the first launch a **settings window** opens — adjust the parameters
+and click "Draw" (the button is labelled in Russian).
 
-- **Скорость рисования** — ползунок 1–20 с оценкой времени
-  (1 — медленно, около 7 минут; 20 — быстро, около 4 секунд);
-- **Раскраска** — всегда / только контуры / случайно при запуске;
-- **Палитра** — случайная, все семейства вместе или одно из четырёх
-  (тёплое мягкое, холодное мягкое, тёплое яркое, холодное яркое);
-- **Формат сохранения** — PDF (вектор) / PNG / JPG;
-- **Размер окна** и **толщина линии**;
-- **Размеры колец** — радиус центра и ширины лент/слоёв (продвинутые);
-- Кнопки «Открыть папку с мандалами» и «Открыть config.ini».
+---
 
-Кнопка **«Рисовать»** сохраняет параметры и запускает генерацию;
-**«Сохранить»** — только сохраняет.
+## Drawing parameters
 
-### Файл config.ini
+There are two equivalent ways to set the parameters — both are stored in
+the same `config.ini` file.
 
-Расположение: `%APPDATA%\Mandala\config.ini`
-(вставьте этот путь в адресную строку Проводника). Открывается Блокнотом.
-Создаётся автоматически при первом запуске, все параметры снабжены
-русскими комментариями. Тот же файл открывается кнопкой из окна настроек.
+### Settings window
 
-Пример:
+Shown on every launch (clear the "Show this window on every launch"
+checkbox to skip it and start drawing immediately).
+
+- **Drawing speed** — slider 1–20 with a time estimate
+  (1 — slow, about 7 minutes; 20 — fast, about 4 seconds);
+- **Coloring** — always / outlines only / random on each launch;
+- **Palette** — random, all families combined, or one of the four
+  (warm soft, cool soft, warm bright, cool bright);
+- **Save format** — PDF (vector) / PNG / JPG;
+- **Window size** and **line width**;
+- **Ring sizes** — center radius and band/layer widths (advanced);
+- Buttons "Open the mandala folder" and "Open config.ini".
+
+The **"Draw"** button saves the parameters and starts the generation;
+**"Save"** only saves them.
+
+The interface of the settings window is in Russian; the values map
+one-to-one onto the `config.ini` keys below.
+
+### config.ini file
+
+Location: `%APPDATA%\Mandala\config.ini` (paste this path into the
+Explorer address bar). It opens in Notepad. The file is created
+automatically on the first launch; its comments are in Russian — only
+the values after `=` matter. The same file opens from a button in the
+settings window.
+
+Example:
 
 ```ini
 [Рисование]
@@ -130,153 +138,156 @@ BG_COLOR = white
 DRAW_SPEED_LEVEL = 12
 ```
 
-Основные параметры:
+Main parameters:
 
-| Параметр | Значения по умолчанию | Что делает |
+| Parameter | Default | Purpose |
 | --- | --- | --- |
-| `BG_COLOR`, `LINE_COLOR` | `white`, `black` | Цвета фона и контуров |
-| `LINE_WIDTH` | `1.5` | Толщина пера, px |
-| `DRAW_SPEED_LEVEL` | `15` | Скорость анимации, 1–20 |
-| `COLOR_MODE` | `yes` | Раскраска: `yes` / `no` / `random` |
-| `PALETTE_CHOICE` | `random` | Палитра: `random`, `all`, `warm_soft`, `cool_soft`, `warm_bright`, `cool_bright` |
-| `SAVE_FORMAT` | `pdf` | `pdf` (вектор) / `png` / `jpg` |
-| `WINDOW_SIZE` | `1000` | Размер окна, px (400–2000) |
-| `CIRCLE_RADIUS`, `BAND1_WIDTH`…`L5_WIDTH` | см. config.py | Радиус центра и ширины колец |
-| `PAINT_LAYER_RINGS` | `true` | Раскрашивать кольца слоёв |
+| `BG_COLOR`, `LINE_COLOR` | `white`, `black` | Background and outline colors |
+| `LINE_WIDTH` | `1.5` | Pen width, px |
+| `DRAW_SPEED_LEVEL` | `15` | Animation speed, 1–20 |
+| `COLOR_MODE` | `yes` | Coloring: `yes` / `no` / `random` |
+| `PALETTE_CHOICE` | `random` | Palette: `random`, `all`, `warm_soft`, `cool_soft`, `warm_bright`, `cool_bright` |
+| `SAVE_FORMAT` | `pdf` | `pdf` (vector) / `png` / `jpg` |
+| `WINDOW_SIZE` | `1000` | Window size, px (400–2000) |
+| `CIRCLE_RADIUS`, `BAND1_WIDTH`…`L5_WIDTH` | see config.py | Center radius and ring widths |
+| `PAINT_LAYER_RINGS` | `true` | Color the layer rings |
 
-Секции `[Веса стилей]` управляют вероятностью узоров: `0` — узор
-выключен, `2` — вдвое чаще. Например:
+The `[Веса стилей]` section controls pattern probabilities: `0` disables
+a pattern, `2` makes it twice as likely. For example:
 
 ```ini
 [Веса стилей]
-CENTER_7 = 0     ; символ «Ом» не выбирается
-LAYER_5 = 3.0    ; «Лист с прожилкой (45°)» — втрое чаще
+CENTER_7 = 0     ; the "Om" symbol is never picked
+LAYER_5 = 3.0    ; "Leaf with vein (45°)" is three times as likely
 ```
 
-Правки весов из окна настроек не теряются — они переносятся в файл
-при каждом сохранении.
+Weight edits made in the settings window are preserved — they are carried
+over to the file on every save.
 
-**Сброс к значениям по умолчанию** — удалите параметр из файла или весь
-`config.ini` (при следующем запуске создастся заново).
+**Resetting to defaults** — delete a parameter from the file, or the whole
+`config.ini` (it is recreated on the next launch).
 
 ---
 
-## Куда сохраняются мандалы и логи
+## Where mandalas and logs are stored
 
-| Что | Обычная установка | Портативная версия |
+| What | Regular installation | Portable version |
 | --- | --- | --- |
-| Мандалы | `Изображения\Mandala` (`%USERPROFILE%\Pictures\Mandala`) | `img\` рядом с `Mandala.exe` |
-| Логи | `%LOCALAPPDATA%\Mandala\logs` | `log\` рядом с `Mandala.exe` |
-| config.ini | `%APPDATA%\Mandala\config.ini` | рядом с `Mandala.exe` |
+| Mandalas | `Pictures\Mandala` (`%USERPROFILE%\Pictures\Mandala`; shown as «Изображения» in Russian Windows) | `img\` next to `Mandala.exe` |
+| Logs | `%LOCALAPPDATA%\Mandala\logs` | `log\` next to `Mandala.exe` |
+| config.ini | `%APPDATA%\Mandala\config.ini` | next to `Mandala.exe` |
 
-Папку с мандалами можно открыть прямо из окна настроек.
-
----
-
-## Портативная версия
-
-Распакуйте `Mandala-portable-<версия>.zip` в любую папку с правом записи
-(например, `D:\Mandala`) и запустите `Mandala.exe`. Все данные хранятся
-рядом с программой, ничего в системе не регистрируется — удобно носить
-на флешке. Файл-метка `portable.ini` удалять не нужно: именно он
-включает этот режим.
+The mandala folder can be opened directly from the settings window.
 
 ---
 
-## Удаление
+## Portable version
 
-**Параметры → Приложения → Mandala Generator → Удалить** (или классически:
-Панель управления → Установка и удаление программ).
+Unzip `Mandala-portable-<version>.zip` into any writable folder
+(e.g. `D:\Mandala`) and run `Mandala.exe`. All data is kept next to the
+program, nothing is registered in the system — handy on a USB stick.
+Do not delete the `portable.ini` marker file: it is what enables this
+mode.
 
-Удаление программы **не трогает ваши данные**: нарисованные мандалы,
-логи и `config.ini` остаются. Убрать их вручную, если нужно:
+---
+
+## Uninstalling
+
+**Settings → Apps → Mandala Generator → Uninstall** (or the classic
+Control Panel → Programs and Features).
+
+Uninstalling the program **does not touch your data**: generated
+mandalas, logs and `config.ini` remain. Remove them manually if needed:
 
 - `%USERPROFILE%\Pictures\Mandala`
 - `%APPDATA%\Mandala`
 - `%LOCALAPPDATA%\Mandala`
 
-У портативной версии достаточно удалить папку.
+For the portable version, just delete the folder.
 
 ---
 
-## Частые проблемы
+## Troubleshooting
 
-**SmartScreen блокирует запуск.** Нажмите «Подробнее» → «Выполнить
-в любом случае». Альтернатива — собрать установщик самостоятельно
-(см. [Сборка из исходников](#сборка-из-исходников)).
+**SmartScreen blocks the launch.** Click "More info" → "Run anyway".
+Alternatively, build the installer yourself
+(see [Building from source](#building-from-source)).
 
-**Антивирус помечает программу как подозрительную.** Такое иногда бывает
-с любыми сборками PyInstaller без подписи. Добавьте программу в
-исключения или соберите её сами из исходников на своём компьютере.
+**The antivirus flags the program as suspicious.** This occasionally
+happens with any unsigned PyInstaller build. Add the program to the
+exclusions, or build it yourself from the sources on your machine.
 
-**Программа не запускается, пишет «Программа не смогла запуститься».**
-Подробности записаны в файл `crash-<дата>-<время>.txt` в каталоге логов
-(см. таблицу выше). Пришлите этот файл тому, кто собирает программу.
+**The program does not start and reports "Программа не смогла
+запуститься".** Details are written to a `crash-<date>-<time>.txt` file
+in the logs directory (see the table above). Send that file to whoever
+builds the program.
 
-**Окно настроек надоело.** Снимите галочку «Показывать это окно при
-каждом запуске» — параметры можно менять и в `config.ini`.
+**The settings window is annoying.** Clear the "Show this window on every
+launch" checkbox — parameters can be edited in `config.ini` as well.
 
-**Не находится config.ini.** Нажмите Win+R, вставьте
-`%APPDATA%\Mandala\config.ini`, Enter.
+**config.ini cannot be found.** Press Win+R, paste
+`%APPDATA%\Mandala\config.ini`, press Enter.
 
-**Хочу вернуть окно настроек.** В `config.ini` поставьте
-`SHOW_SETTINGS_DIALOG = true` (секция «Общие») — или просто удалите файл.
+**I want the settings window back.** Set
+`SHOW_SETTINGS_DIALOG = true` in `config.ini` (section «Общие») — or
+simply delete the file.
 
 ---
 
-## Сборка из исходников
+## Building from source
 
-Выполняется один скрипт на Windows-машине с интернетом:
+A single script on a Windows machine with internet access:
 
 ```bat
 windows\build_windows.bat
 ```
 
-Что происходит по шагам:
+What happens, step by step:
 
-1. **Python** — если на машине нет Python 3.9+, скрипт скачивает
-   и тихо ставит Python 3.12.8 (только для текущего пользователя;
-   он нужен для сборки, в готовую программу не входит).
-2. **Зависимости** — создаётся `.venv-win`, ставятся `pillow`, `pycairo`,
-   `pyinstaller` (см. `windows\requirements-win.txt`). Pycairo содержит
-   Cairo прямо в pip-пакете — качать GTK/MSYS2 не нужно.
-3. **Приложение** — PyInstaller по сценарию `windows\mandala.spec`
-   собирает `dist\Mandala\Mandala.exe` (onedir, окно без консоли,
-   иконка `windows\icon.ico`).
-4. **Инсталлятор** — при необходимости ставится Inno Setup 6
-   (бесплатный, от jrsoftware.org), затем компилируется
-   `windows\installer\mandala.iss` → `dist\MandalaSetup-<версия>.exe`.
-5. **Portable-zip** — `windows\make_portable.ps1` пакует то же
-   приложение с меткой `portable.ini`.
+1. **Python** — if the machine has no Python 3.9+, the script downloads
+   and silently installs Python 3.12.8 (for the current user only; needed
+   for building, not included in the finished program).
+2. **Dependencies** — `.venv-win` is created and `pillow`, `pycairo`,
+   `pyinstaller` are installed (see `windows\requirements-win.txt`).
+   Pycairo bundles Cairo inside the pip package — no GTK/MSYS2 downloads
+   needed.
+3. **Application** — PyInstaller builds `dist\Mandala\Mandala.exe` from
+   `windows\mandala.spec` (onedir, windowed, icon `windows\icon.ico`).
+4. **Installer** — Inno Setup 6 is installed if necessary (free, from
+   jrsoftware.org), then `windows\installer\mandala.iss` is compiled →
+   `dist\MandalaSetup-<version>.exe`.
+5. **Portable zip** — `windows\make_portable.ps1` packs the same
+   application with the `portable.ini` marker.
 
-Версия задаётся в `windows\version.txt` (одна строка, например `1.0.0`);
-она попадает в имя инсталлятора и в данные «Установка и удаление программ».
-Чтобы сменить иконку — замените `windows\icon.ico`.
+The version is set in `windows\version.txt` (a single line, e.g. `2.2`);
+it goes into the installer file name and into the Apps list. To change
+the icon, replace `windows\icon.ico`.
 
-Если по какой-то причине понадобится вариант с `cairocffi` вместо
-`pycairo`: скрипт `windows\update_cairo_dlls.ps1` скачает нужные Cairo DLL
-(MSYS2) в `windows\cairo_dlls\` — spec включит их в сборку автоматически.
+If for some reason you need the `cairocffi` variant instead of `pycairo`:
+`windows\update_cairo_dlls.ps1` downloads the required Cairo DLLs (MSYS2)
+into `windows\cairo_dlls\`, and the spec includes them in the build
+automatically.
 
 ---
 
-## Что где лежит в репозитории
+## Repository layout
 
 ```
-mandala\                     # исходный код пакета (см. README_RU.md)
-├── settings.py              # чтение config.ini, применение к Config
-├── settings_dialog.py       # окно настроек перед рисованием
-├── app_paths.py             # пути данных: мандалы, логи, config.ini
-└── cairo_backend.py         # выбор Cairo: pycairo (Windows) / cairocffi
-mandala_app.py               # точка входа собранного приложения
+mandala\                     # package source code (see README.md)
+├── settings.py              # reads config.ini, applies it to Config
+├── settings_dialog.py       # settings window shown before drawing
+├── app_paths.py             # data locations: mandalas, logs, config.ini
+└── cairo_backend.py         # Cairo backend: pycairo (Windows) / cairocffi
+mandala_app.py               # entry point of the packaged application
 windows\
-├── build_windows.bat        # сборка всего одной командой
-├── mandala.spec             # сценарий PyInstaller
-├── installer\mandala.iss    # сценарий инсталлятора (Inno Setup 6)
-├── make_portable.ps1        # сборка portable-zip
-├── update_cairo_dlls.ps1    # (опционально) DLL Cairo для варианта cairocffi
-├── requirements-win.txt     # зависимости сборки
+├── build_windows.bat        # one-command build
+├── mandala.spec             # PyInstaller spec
+├── installer\mandala.iss    # installer script (Inno Setup 6)
+├── make_portable.ps1        # portable zip builder
+├── update_cairo_dlls.ps1    # (optional) Cairo DLLs for the cairocffi route
+├── requirements-win.txt     # build dependencies
 ├── icon.ico, version.txt
-tests\test_settings.py       # проверки модуля настроек
+tests\test_settings.py       # settings module checks
 .github\workflows\
-└── build-windows.yml        # автосборка в GitHub Actions
+└── build-windows.yml        # automatic build in GitHub Actions
 ```

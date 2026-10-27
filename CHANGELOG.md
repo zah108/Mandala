@@ -44,9 +44,9 @@ code.
   module (defaults, overrides, invalid values, weights, template round-trip).
 - The package files moved into the `mandala/` folder, matching the layout
   already documented in the READMEs; `img/` and `log/` moved with it.
-- New `README_Windows.md` (Russian): obtaining the installer via GitHub
-  Actions or `build_windows.bat`, installation, parameters, data locations,
-  troubleshooting.
+- New `README_Windows.md` (English) and `README_Windows_RU.md` (Russian):
+  obtaining the installer via GitHub Actions or `build_windows.bat`, installation,
+  parameters, data locations, troubleshooting.
 
 ---
 

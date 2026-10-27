@@ -12,9 +12,10 @@
 ![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> 🪟 **Версия для Windows без Python:** см. [README_Windows.md](README_Windows.md) —
+> 🪟 **Версия для Windows без Python:** см. [README_Windows_RU.md](README_Windows_RU.md) —
 > готовый инсталлятор `MandalaSetup.exe` и portable-сборка. Параметры рисования
-> задаются в окне настроек или во внешнем `config.ini`.
+> задаются в окне настроек или во внешнем `config.ini`. (Английская версия —
+> [README_Windows.md](README_Windows.md).)
 
 ## 🖼️ Примеры
 
