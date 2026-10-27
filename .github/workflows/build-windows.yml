@@ -1,0 +1,47 @@
+name: build-windows-instance
+"on":
+  push:
+    branches: [main]
+    paths:
+      - "mandala39-WindowsBuild/**"
+      - ".github/workflows/build-windows.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: libcairo DLL (MSYS2)
+        shell: bash
+        run: |
+          /c/msys64/usr/bin/bash -lc \
+            "pacman -Syy --noconfirm && pacman -S --needed --noconfirm mingw-w64-x86_64-cairo"
+
+      - name: PyInstaller build (MandalaGenerator)
+        run: |
+          set "PATH=C:\msys64\mingw64\bin;%PATH%"
+          cd mandala39-WindowsBuild
+          build_exe.bat
+
+      - name: InnoSetup installer (MandalaSetup.exe)
+        run: |
+          cd mandala39-WindowsBuild
+          choco install innosetup --no-progress -y
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" MandalaInstaller.iss
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MandalaSetup-Windows
+          path: mandala39-WindowsBuild/INSTALLER/MandalaSetup.exe

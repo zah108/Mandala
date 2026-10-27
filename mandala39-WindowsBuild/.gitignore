@@ -1,0 +1,11 @@
+# Артефакты сборки PyInstaller
+build/
+dist/
+INSTALLER/
+cairo_dll/
+*.egg-info/
+
+# Python / система
+__pycache__/
+*.pyc
+.DS_Store
