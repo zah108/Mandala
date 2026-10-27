@@ -10,6 +10,46 @@ PDF export.
 
 ---
 
+## Windows distribution (2026-10-27)
+
+New: a complete Windows build kit. The program now ships as an
+`MandalaSetup.exe` installer (no Python required on the target machine)
+plus a portable zip; drawing parameters are configurable without editing
+code.
+
+- `mandala/settings.py` — external `config.ini` applied over `config.py`
+  (colors, speed, palette, ring sizes, `SAVE_FORMAT`, style weights).
+  Invalid values are ignored with warnings; a commented Russian template
+  is created on first run; settings are applied once per run (`ensure_applied`).
+- `mandala/settings_dialog.py` — Tkinter settings window before drawing:
+  speed slider with a time estimate, color mode, palette, save format,
+  window size, line width, ring sizes; saves to `config.ini`.
+- `mandala/app_paths.py` — data locations: installed → `Pictures\Mandala`
+  for images, `%LOCALAPPDATA%` for logs, `%APPDATA%` for `config.ini`;
+  portable mode (a `portable.ini` marker next to the exe) keeps everything
+  next to the program; dev mode unchanged (`img/`, `log/` in the package).
+- `mandala/cairo_backend.py` — Cairo backend selection: `pycairo` on
+  Windows (the wheel bundles Cairo statically, no external DLLs),
+  `cairocffi` for macOS/dev. Drawing code is untouched.
+- `mandala_app.py` — frozen entry point: DPI awareness, Cairo DLL preload,
+  settings window, crash log with a `crash-*.txt` file.
+- `windows/` — build kit: `build_windows.bat` (bootstraps Python, deps,
+  PyInstaller, Inno Setup, portable zip in one run), `mandala.spec`,
+  `installer/mandala.iss` (per-user installer with Russian UI, shortcuts,
+  uninstaller), `make_portable.ps1`, `update_cairo_dlls.ps1` (optional
+  cairocffi route), `requirements-win.txt`, `icon.ico`, `version.txt`.
+- `.github/workflows/build-windows.yml` — installer built automatically
+  in GitHub Actions (manual dispatch or `v*` tags), artifact upload.
+- `tests/test_settings.py` — 30 self-contained checks for the settings
+  module (defaults, overrides, invalid values, weights, template round-trip).
+- The package files moved into the `mandala/` folder, matching the layout
+  already documented in the READMEs; `img/` and `log/` moved with it.
+- New `README_Windows.md` (Russian): obtaining the installer via GitHub
+  Actions or `build_windows.bat`, installation, parameters, data locations,
+  troubleshooting.
+
+---
+
 ## 1. Summary of changes
 
 | Area | Previous version | Current version |

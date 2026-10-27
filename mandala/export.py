@@ -3,14 +3,17 @@ import datetime
 import os
 import time
 
-import cairocffi as cairo
+from .cairo_backend import cairo
 from PIL import Image
 
+from . import app_paths
 from .config import Config
 from .runtime import W, _rgb, _tmark
 
 
-_IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "img")
+# Собранное приложение: ~/Pictures/Mandala или img/ рядом с exe (портативный
+# режим); запуск из исходников — img/ внутри пакета, как раньше.
+_IMG_DIR = app_paths.images_dir()
 
 
 def save_mandala(scene, mandala_name):

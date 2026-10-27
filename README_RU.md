@@ -12,6 +12,10 @@
 ![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+> 🪟 **Версия для Windows без Python:** см. [README_Windows.md](README_Windows.md) —
+> готовый инсталлятор `MandalaSetup.exe` и portable-сборка. Параметры рисования
+> задаются в окне настроек или во внешнем `config.ini`.
+
 ## 🖼️ Примеры
 
 <div align="center">
@@ -91,9 +95,17 @@ mandala/
 ├── bands.py             # 12 стилей разделительных лент
 ├── layers.py            # 17 стилей слоёв лепестков
 ├── logging_utils.py     # формирование и запись лога
-└── export.py            # сохранение сцены: векторный PDF через Cairo,
-                         # растр PNG/JPG через PIL
+├── export.py            # сохранение сцены: векторный PDF через Cairo,
+│                         # растр PNG/JPG через PIL
+├── app_paths.py         # расположение данных: мандалы, логи, config.ini
+├── settings.py          # внешний config.ini поверх config.py
+├── settings_dialog.py   # окно настроек (Tkinter) перед рисованием
+└── cairo_backend.py     # бэкенд Cairo: pycairo (Windows) / cairocffi (dev)
 ```
+
+Рядом с пакетом в корне проекта также находятся `mandala_app.py`
+(точка входа Windows-сборки), `windows/` (комплект сборки инсталлятора)
+и `tests/`; подробности — в [README_Windows.md](README_Windows.md).
 
 Во время работы создаются рабочие каталоги (в каталоге проекта):
 

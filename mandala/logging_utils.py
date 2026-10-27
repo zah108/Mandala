@@ -2,6 +2,8 @@
 import datetime
 import os
 
+from . import app_paths
+
 
 def format_colors(colors):
     if not colors:
@@ -26,7 +28,7 @@ def format_layer_colors(petal_colors, ring_color):
 
 
 def setup_log_path():
-    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log")
+    log_dir = app_paths.logs_dir()
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     month_str = datetime.datetime.now().strftime("%Y-%m")

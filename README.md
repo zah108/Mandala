@@ -12,6 +12,10 @@ The code was written using LLM (Large Language Model).
 ![Mandala](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+> 🪟 **Windows without Python:** see [README_Windows.md](README_Windows.md) —
+> a ready `MandalaSetup.exe` installer and a portable build. Drawing
+> parameters are set via a settings window or an external `config.ini`.
+
 ## 🖼️ Examples
 
 <div align="center">
@@ -93,9 +97,17 @@ mandala/
 ├── bands.py             # 12 separator band styles
 ├── layers.py            # 17 petal layer styles
 ├── logging_utils.py     # log formatting and writing
-└── export.py            # scene saving: vector PDF via Cairo,
-                         # PNG/JPG raster via PIL
+├── export.py            # scene saving: vector PDF via Cairo,
+│                         # PNG/JPG raster via PIL
+├── app_paths.py         # data locations: images, logs, config.ini
+├── settings.py          # external config.ini applied over config.py
+├── settings_dialog.py   # settings window (Tkinter) before drawing
+└── cairo_backend.py     # Cairo backend: pycairo (Windows) / cairocffi (dev)
 ```
+
+Next to the package, the repository root also contains
+`mandala_app.py` (entry point of the Windows build), `windows/`
+(installer build kit) and `tests/`; see [README_Windows.md](README_Windows.md).
 
 During operation the following working directories are created
 (inside the project directory):

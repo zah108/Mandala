@@ -57,6 +57,13 @@ import random
 import time
 
 from .config import Config
+from . import settings
+
+# Пользовательские настройки (config.ini) применяются ДО импорта runtime:
+# тот при импорте создаёт окно и фиксирует Config.WINDOW_SIZE.
+# Если точка входа уже применяла их — повторного чтения не будет.
+_settings_warnings = settings.ensure_applied()
+
 from . import runtime, selection, centers, bands, layers, export, logging_utils
 from .runtime import screen, t, _tmark
 
@@ -191,6 +198,13 @@ def main():
         fallback_warnings=selection._fallback_warnings,
     )
     logging_utils.write_start_log(log_path, report)
+
+    if _settings_warnings:
+        logging_utils.write_start_log(
+            log_path,
+            "Предупреждения настроек (config.ini):\n  - "
+            + "\n  - ".join(_settings_warnings) + "\n",
+        )
 
     # --- Отрисовка ---
     r = _compute_radii()

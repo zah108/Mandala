@@ -6,18 +6,9 @@ fill_color / circle ...), поэтому модули стилей работа�
 со сглаживанием) и она же пишется в PDF — без Ghostscript.
 """
 import math
-import os
 import time
 
-# cairocffi ищет libcairo в стандартных путях; на macOS она из Homebrew.
-_LIB_DIRS = ("/opt/homebrew/lib", "/usr/local/lib")
-_found = [d for d in _LIB_DIRS if os.path.exists(os.path.join(d, "libcairo.2.dylib"))]
-if _found:
-    _old = os.environ.get("DYLD_LIBRARY_PATH", "")
-    if _found[0] not in _old:
-        os.environ["DYLD_LIBRARY_PATH"] = os.pathsep.join(_found + ([_old] if _old else []))
-
-import cairocffi as cairo          # noqa: E402
+from .cairo_backend import cairo   # noqa: E402  (cairocffi или pycairo)
 from PIL import Image, ImageColor, ImageTk   # noqa: E402
 import tkinter as tk               # noqa: E402
 

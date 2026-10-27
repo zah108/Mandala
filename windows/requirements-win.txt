@@ -1,0 +1,7 @@
+# Зависимости сборки Windows-версии Mandala Generator.
+# Ставится в venv скриптом windows\build_windows.bat (Python 3.9–3.13).
+# pycairo: официальные Windows-колёса содержат Cairo внутри (статически),
+# внешние DLL не требуются.
+pillow>=10.0.0
+pycairo>=1.26.0
+pyinstaller>=6.10.0
