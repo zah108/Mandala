@@ -13,6 +13,7 @@ from PIL import Image, ImageColor, ImageTk   # noqa: E402
 import tkinter as tk               # noqa: E402
 
 from .config import Config         # noqa: E402
+from ._window_master import WINDOW_MASTER  # noqa: E402
 from .traj import Line, Arc, Bezier, FillElement, StrokeElement, TrajectoryElement  # noqa: E402
 
 
@@ -365,23 +366,26 @@ class CairoTurtle:
         self._fill_cur = None
 
 class Screen:
-    """Окно с векторной сценой (Cairo рисует со сглаживанием)."""
+    """Окно с векторной сценой (Cairo рисует со сглаживанием).
 
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Mandala Generator")
-        self.canvas = tk.Canvas(self.root, width=W, height=W,
-                                bg=Config.BG_COLOR, highlightthickness=0)
-        self.canvas.pack()
-        # Крестик окна рисования прячет окно (приложение продолжается);
-        # уничтожение окна — только при полном завершении сеанса.
+    Окно — Toplevel скрытого корня сеанса (если master задан) или
+    самостоятельный tk.Tk (автономный запуск python -m mandala).
+    Закрытие окна крестиком уничтожает только его окно; при следующем
+    «Рисовать» оно создаётся заново (_build_window), а сцена/перо живут
+    в объекте Screen и переживают пересоздание окна.
+    """
+
+    def __init__(self, master=None):
+        self.master = master
+        self._window_alive = False
+        self._on_window_closed = None  # callback сеанса (draw_session)
         self._anim_job = None
-        self.root.protocol("WM_DELETE_WINDOW", self._hide_window)
 
         self.anim_manager = AnimationManager(Config._speed_px_s if hasattr(Config, '_speed_px_s') else 500.0)
         self.scene = Scene()
         self.turtle = CairoTurtle(self.scene, self.anim_manager)
 
+        # Векторные слои не зависят от виджетов — живут весь сеанс.
         self._base = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, W)
         self._paint_base()
         self._done = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, W)
@@ -393,6 +397,30 @@ class Screen:
         self._item = None
         self._frame = None
         self._last_upload = 0.0
+
+        self._build_window()
+
+    def _build_window(self):
+        """Создаёт (или пересоздаёт после закрытия) окно рисования."""
+        root = getattr(self, "root", None)
+        if root is not None:
+            try:
+                if root.winfo_exists():
+                    root.destroy()
+            except Exception:
+                pass
+        if self.master is not None:
+            self.root = tk.Toplevel(self.master)
+        else:
+            self.root = tk.Tk()
+        self.root.title("Mandala Generator")
+        self.canvas = tk.Canvas(self.root, width=W, height=W,
+                                bg=Config.BG_COLOR, highlightthickness=0)
+        self.canvas.pack()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close_window)
+        self._photo = None
+        self._item = None
+        self._window_alive = True
 
     @staticmethod
     def _apply_view(cr):
@@ -437,27 +465,37 @@ class Screen:
     def tracer(self, *args): return None
 
     def _cancel_anim_job(self):
-        """Отменяет запланированный кадр анимации (перед сбросом/скрытием)."""
+        """Отменяет запланированный кадр анимации (перед сбросом/закрытием)."""
         job = self._anim_job
         if job is not None:
+            root = getattr(self, "root", None)
             try:
-                self.root.after_cancel(job)
+                if root is not None:
+                    root.after_cancel(job)
             except Exception:
                 pass
             self._anim_job = None
 
-    def _hide_window(self):
-        """Крестик окна рисования: прячем окно, приложение продолжается."""
+    def _on_close_window(self):
+        """Крестик окна рисования: закрываем только его окно.
+
+        Сцена, траектория и перо остаются в объекте Screen — при следующем
+        «Рисовать» окно создаётся заново с тем же содержимым.
+        """
         self._cancel_anim_job()
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+        self._window_alive = False
         self._photo = None
-        try:
-            self.root.withdraw()
-        except Exception:
-            pass
-        try:
-            self.root.quit()  # если крутился mainloop (автономный режим) — выходим
-        except Exception:
-            pass
+        self._item = None
+        callback = self._on_window_closed
+        if callback is not None:
+            try:
+                callback()
+            except Exception:
+                pass
 
     def bye(self):
         self._photo = None
@@ -539,7 +577,7 @@ class Screen:
 
     def update(self):
         try:
-            if self._anim_finished:
+            if not self._window_alive or self._anim_finished:
                 return
 
             _frame_t0 = time.perf_counter()
@@ -587,7 +625,7 @@ class Screen:
             self._last_upload = now
 
             img = Image.frombytes('RGBA', (W, W), bytes(self._frame.get_data()), 'raw', 'BGRA', self._frame.get_stride())
-            self._photo = ImageTk.PhotoImage(img)
+            self._photo = ImageTk.PhotoImage(img, master=self.root)
             if self._item is None:
                 self._item = self.canvas.create_image(0, 0, anchor='nw', image=self._photo)
             else:
@@ -598,7 +636,7 @@ class Screen:
 
 
 
-screen = Screen()
+screen = Screen(WINDOW_MASTER["master"])
 scene = screen.scene
 t = screen.turtle
 t.width(Config.LINE_WIDTH)
@@ -668,7 +706,8 @@ def clear_scene():
     screen.anim_manager.reset()
     screen._baked = 0
     screen._anim_finished = False
-    screen._repaint_done()
+    if screen._window_alive:
+        screen._repaint_done()
     globals()["_timings"] = []
     t.reset_state()
 

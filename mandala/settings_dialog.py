@@ -1,7 +1,10 @@
-"""Окно настроек перед рисованием (только стандартный Tkinter).
+"""Окно настроек (только стандартный Tkinter).
 
 Модуль НЕ импортирует runtime — его можно открывать до рабочего окна:
-рисующее окно создаётся позже, в mandala.main.
+рисующее окно создаётся позже, в mandala.main (через draw_session).
+
+Диалог — Toplevel скрытого корня сеанса; рисующее окно — второй Toplevel
+того же корня, поэтому оба окна обслуживает один цикл событий.
 
 Окно читает текущие значения Config (после применения config.ini);
 кнопки «Рисовать» и «Сохранить config.ini» пишут их в config.ini и заново
@@ -61,17 +64,15 @@ def _open_in_explorer(path):
         subprocess.Popen(["xdg-open", path])
 
 
-class SettingsDialog(tk.Tk):
+class SettingsDialog(tk.Toplevel):
     """result=True — пользователь попросил рисовать."""
 
-    def __init__(self, warnings=()):
-        super().__init__()
+    def __init__(self, master, warnings=()):
+        super().__init__(master)
         self.title("Мандала – настройки рисования")
         self.resizable(False, False)
         self.result = False
         self._vars = {}
-        self._closing = False
-        self._pump_started = False
         self._file_stamp = None
 
         outer = ttk.Frame(self, padding=(12, 10))
@@ -294,30 +295,20 @@ class SettingsDialog(tk.Tk):
             self._start_drawing()
 
     def _start_drawing(self):
-        from . import draw_session
-        draw_session.launch_or_restart()
-        if not self._pump_started:
-            self._pump_started = True
-            self._pump_drawing()
-
-    def _pump_drawing(self):
-        """Пока окно настроек открыто, обслуживаем и цикл событий окна рисования."""
-        if self._closing:
-            return
         try:
             from . import draw_session
-            draw_session.pump()
-        except Exception:
-            pass
-        self.after(15, self._pump_drawing)
+            draw_session.launch_or_restart()
+        except Exception as exc:  # ошибка видна в окне, а не теряется молча
+            self._set_status(f"Не удалось запустить рисование: {exc}", "#b02020")
 
     def _on_save(self):
         self._save()
 
     def _on_cancel(self):
-        self._closing = True
         self.result = False
         self.destroy()
+        from . import draw_session
+        draw_session.note_dialog_closed()
 
     def _on_focus_in(self, _event=None):
         """Возврат фокуса: если config.ini меняли снаружи — перечитать поля."""
@@ -363,18 +354,20 @@ class SettingsDialog(tk.Tk):
 def run(warnings=()):
     """Ведёт весь сеанс приложения.
 
-    Окно настроек открыто всегда; кнопка «Рисовать» открывает/перезапускает
-    окно рисования, не закрывая настройки. Приложение завершается, когда
-    закрыты оба окна.
+    Скрытый корень (tk.Tk) владеет двумя Toplevel — окном настроек и окном
+    рисования; один цикл событий обслуживает оба. Приложение завершается,
+    когда закрыты оба окна.
     """
     try:
-        dialog = SettingsDialog(warnings)
-        dialog.mainloop()
+        app_root = tk.Tk()
+        app_root.withdraw()
     except tk.TclError as exc:
         # Нет дисплея или сломан Tk — оконный сеанс невозможен.
         print(f"Окно настроек недоступно: {exc}")
         return
-    # Диалог закрыт своим крестиком (или «Отменой»); окно рисования,
-    # если оно открыто, обслуживаем до его закрытия.
     from . import draw_session
-    draw_session.run_until_closed()
+    draw_session.set_app_root(app_root)
+    dialog = SettingsDialog(app_root, warnings)
+    app_root.mainloop()
+    # mainloop завершился (корень уничтожен после закрытия обоих окон).
+    draw_session.note_dialog_closed()

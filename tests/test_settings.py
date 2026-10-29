@@ -110,6 +110,8 @@ check("DRAW_SPEED_LEVEL = 15" in text, "в шаблоне есть активн�
 check("Радиальные лучи" in text and "Солнце" in text, "в шаблоне есть справочник центров")
 check("[Веса цветов]" in text, "в шаблоне есть секция весов цветов")
 check("SHOW_SETTINGS_DIALOG" not in text, "устаревший параметр в шаблон не пишется")
+check(any(l.startswith("CENTER_1 = 1") and "Радиальные лучи" in l for l in text.splitlines()),
+      "в шаблоне названия узоров стоят в комментариях справа от весов")
 weight_lines = [l for l in text.splitlines()
                 if l and not l.startswith((";", "#"))
                 and any(l.startswith(p) for p in ("CENTER_", "BAND_", "LAYER_"))]
@@ -124,12 +126,25 @@ check(len(color_lines) == total_colors,
       f"все {total_colors} цветов в шаблоне активны (найдено {len(color_lines)})")
 check("WARM_SOFT_#e8a87c = 1" in text and "; WARM_SOFT_" not in text,
       "цвета перечислены активными строками, без закомментированных примеров")
+check(any(l.startswith("CENTER_1 = 1") and "Радиальные лучи" in l
+          for l in text.splitlines()),
+      "у веса центра указано название узора (инлайн-комментарий)")
+check(any(l.startswith("WARM_SOFT_#e8a87c = 1") and "Тёплое-мягкое" in l
+          for l in text.splitlines()),
+      "у веса цвета указано семейство (инлайн-комментарий)")
 
 # 5a. Устаревший ключ игнорируется молча ----------------------------------
 legacy = temp_ini("[Общие]\nSHOW_SETTINGS_DIALOG = true\n")
 warn = settings.apply_user_settings(ini_path=legacy)
 check(warn == [],
       f"устаревший SHOW_SETTINGS_DIALOG игнорируется молча (получено: {warn})")
+
+# 5b. Инлайн-комментарий «;» после значения --------------------------------
+ini_inline = temp_ini("[Рисование]\nDRAW_SPEED_LEVEL = 9 ; девять\n"
+                      "BG_COLOR = black ; тёмный фон\n")
+warn = settings.apply_user_settings(ini_path=ini_inline)
+check(warn == [] and Config.DRAW_SPEED_LEVEL == 9 and Config.BG_COLOR == "black",
+      f"инлайн-комментарий «;» после значения корректен (получено: {warn})")
 
 # 6. save_values сохраняет и восстанавливает -------------------------------
 section("save_values")
@@ -181,6 +196,7 @@ custom = (
     "\n"
     "[Веса стилей]\n"
     "CENTER_2 = 3.0\n"
+    "BAND_1 = 2   ; мой узор\n"
     "; CENTER_3 = 1.0\n"
 )
 with open(work, "w", encoding="utf-8") as f:
@@ -197,7 +213,10 @@ check("DRAW_SPEED_LEVEL = 9" in text2, "новое значение дописа
 check(any(line.strip() in ("CENTER_2 = 3", "CENTER_2 = 3.0")
           for line in text2.splitlines()), "активный вес стиля сохранён")
 check("; CENTER_3 = 1.0" in text2, "закомментированный пример не тронут")
-check("\nCENTER_3 = 1" in text2, "полный список весов дописан активными строками")
+check(any(l.startswith("BAND_1 = 2") and "мой узор" in l for l in text2.splitlines()),
+      "инлайн-комментарий пользователя сохранён при записи")
+check("\nCENTER_3 = 1    ; Спираль" in text2,
+      "дописанным весам добавлены названия узоров")
 warn = settings.apply_user_settings(ini_path=work)
 check(Config.DRAW_SPEED_LEVEL == 9 and Config.WINDOW_SIZE == 900,
       "всё перечитывается после сохранения")

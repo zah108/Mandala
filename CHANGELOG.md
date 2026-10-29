@@ -18,17 +18,25 @@ PDF export.
   `config.ini` files).
 - "Рисовать" no longer closes the settings window: drawing runs in its own
   window while the settings stay open, so several mandalas can be drawn in
-  a row. The close button of the drawing window only hides that window;
-  the settings window closes only via its own close button. The app exits
-  when both windows are closed.
+  a row. The close button of the drawing window closes only that window
+  (it is recreated on the next "Рисовать"); the settings window closes
+  only via its own close button. The app exits when both windows are closed.
 - The "Сохранить" button is renamed to "Сохранить config.ini".
 - Fixed: the drawing-speed slider was never initialized from `config.ini`
   (it always started at level 15 regardless of the file).
 - The settings window re-reads `config.ini` when it regains focus after
   the file was edited externally.
 - `config.ini` now lists every pattern weight (centers, bands, layers) and
-  every palette color weight as an active editable line, instead of
-  commented examples only.
+  every palette color weight as an active editable line — with the pattern
+  name / palette family written as a comment on the same line — instead of
+  commented examples only. Weights accept any numbers (0 — off, 1 — normal,
+  higher/lower — more/less likely). Inline comments after a value are now
+  supported (`;` only, never `#`) and are preserved when the settings
+  window saves the file.
+- Both windows share a single hidden Tk root, which fixes an empty drawing
+  window ("image pyimageN doesn't exist") and the settings window closing
+  together with the drawing window; launch errors are reported in the
+  settings window status line.
 
 ## 2.3
 

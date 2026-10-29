@@ -283,7 +283,9 @@ def apply_user_settings(overrides=None, ini_path=None):
             interpolation=None,
             strict=False,
             comment_prefixes=("#", ";"),
-            inline_comment_prefixes=None,
+            # Инлайн-комментарии разрешены только с «;» (с «#» нельзя —
+            # иначе обрежется значение цвета вида #e8a87c).
+            inline_comment_prefixes=(";",),
         )
         parser.optionxform = str  # сохраняем регистр ключей
         try:
@@ -351,41 +353,58 @@ def ensure_applied():
 # ---------------------------------------------------------------
 # Запись config.ini
 # ---------------------------------------------------------------
-def _styles_reference_lines():
-    """Справочник узоров с номерами — генерируется из config.py."""
-    refs = [
-        "; --- Справочник узоров ---",
-        "; Центр (CENTER_<номер>):",
-    ]
-    for index in sorted(Config.CENTER_STYLES):
-        refs.append(f";   {index} — {Config.CENTER_STYLES[index]['name']}")
-    refs.append("; Ленты (BAND_<номер>):")
-    for index in sorted(Config.BAND_STYLES):
-        refs.append(f";   {index} — {Config.BAND_STYLES[index]['name']}")
-    refs.append("; Уровни (LAYER_<номер>):")
-    for index in sorted(Config.LAYER_STYLES):
-        refs.append(f";   {index} — {Config.LAYER_STYLES[index]['name']}")
-    return refs
+def _split_inline_comment(raw):
+    """'1.0    ; имя' -> ('1.0', '    ; имя'); без комментария -> (raw, '')."""
+    pos = raw.find(";")
+    if pos < 0:
+        return raw, ""
+    head, tail = raw[:pos], raw[pos:]
+    spaces = head[len(head.rstrip()):]
+    if not spaces:
+        spaces = "    "
+    return head.rstrip(), spaces + tail
+
+
+def _style_display_name(key):
+    """Имя узора для ключа веса CENTER_7 / BAND_3 / LAYER_5 (или '')."""
+    for prefix, attr in _WEIGHT_TARGETS:
+        if not key.startswith(prefix):
+            continue
+        try:
+            index = int(key[len(prefix):])
+        except ValueError:
+            return ""
+        return getattr(Config, attr).get(index, {}).get("name", "")
+    return ""
+
+
+def _color_family_comment(key):
+    """Комментарий семейства для ключа веса цвета (или '')."""
+    upper = key.upper()
+    for family, data in Config.COLOR_FAMILIES.items():
+        if upper.startswith(family.upper() + "_"):
+            return data.get("comment", "")
+    return ""
 
 
 def _color_weight_section_lines(extra=None):
-    """Секция [Веса цветов]: все цвета перечислены активными строками."""
+    """Секция [Веса цветов]: все цвета активными строками с пояснением."""
     lines = [
         f"[{_COLOR_WEIGHT_SECTION}]",
-        "; Веса отдельных цветов палитры: 0 — цвет не используется,",
-        "; 1 — обычная, 2 — вдвое чаще. Формат: <СЕМЕЙСТВО>_<#hex>.",
-        "; Меняйте значения после «=»:",
+        "; Веса отдельных цветов палитры — любые числа: 0 — цвет не",
+        "; используется, 1 — обычная вероятность, 2 — вдвое чаще,",
+        "; 0.5 — вдвое реже и т. д. Формат ключа: <СЕМЕЙСТВО>_<#hex>,",
+        "; семейство цвета — в комментарии справа от значения.",
     ]
     values = _all_color_weights()
     if extra:
         values.update({k: str(v) for k, v in extra.items()})
     for family, data in Config.COLOR_FAMILIES.items():
         comment = data.get("comment", "")
-        lines.append(";")
-        lines.append(f"; {family} — {comment}:")
         for color in data["colors"]:
             key = f"{family.upper()}_{color['hex']}"
-            lines.append(f"{key} = {values[key]}")
+            suffix = f"    ; {comment}" if comment else ""
+            lines.append(f"{key} = {values[key]}{suffix}")
     return lines
 
 
@@ -404,19 +423,20 @@ def _split_weights(weights):
 
 
 def _weight_lines(extra=None):
-    """Строки секции весов: все узоры перечислены активными строками."""
+    """Строки секции весов: все узоры активными строками, название — в комментарии."""
     lines = [
         f"[{_WEIGHT_SECTION}]",
-        "; Вероятности выбора узоров: 0 — узор не используется, 1 — обычная,",
-        "; 2 — вдвое чаще. Формат ключа: CENTER_<номер>, BAND_<номер>, LAYER_<номер>.",
-        "; Меняйте значения после «=».",
+        "; Вероятности выбора узоров — любые числа: 0 — узор не используется,",
+        "; 1 — обычная вероятность, 2 — вдвое чаще, 0.5 — вдвое реже и т. д.",
+        "; Название узора — в комментарии справа от значения.",
     ]
-    lines.extend(_styles_reference_lines())
     values = _all_style_weights()
     if extra:
         values.update({k: str(v) for k, v in extra.items()})
     for key in sorted(values, key=_weight_sort_key):
-        lines.append(f"{key} = {values[key]}")
+        name = _style_display_name(key)
+        suffix = f"    ; {name}" if name else ""
+        lines.append(f"{key} = {values[key]}{suffix}")
     return lines
 
 
@@ -435,8 +455,9 @@ def template_text(values=None, weights=None):
         ";  Меняйте значения после знака «=». Строки, начинающиеся",
         ";  с «;» или «#», — комментарии.",
         ";",
-        ";  ВАЖНО: не пишите комментарий в одной строке со значением —",
-        ";  цвет вида #e8a87c должен остаться частью значения.",
+        ";  Можно писать комментарий после значения через «;» (с пробелом),",
+        ";  но НЕ используйте в комментарии «#» — иначе пострадает цвет",
+        ";  вида #e8a87c, который должен остаться частью значения.",
         ";",
         ";  Если удалить параметр или весь файл — вернётся значение",
         ";  по умолчанию из config.py.",
@@ -563,18 +584,21 @@ def save_values(values, path=None):
                 key = match.group(2).strip().upper()
                 if key in targets_upper:
                     seen_params.add(key)
+                    _value, comment = _split_inline_comment(match.group(4))
                     out.append(f"{match.group(1)}{match.group(2)}{match.group(3)}"
-                               f"{targets[targets_upper[key]]}")
+                               f"{targets[targets_upper[key]]}{comment}")
                     continue
                 if style_section and key in style_upper:
                     style_seen.add(key)
+                    _value, comment = _split_inline_comment(match.group(4))
                     out.append(f"{match.group(1)}{match.group(2)}{match.group(3)}"
-                               f"{style_upper[key]}")
+                               f"{style_upper[key]}{comment}")
                     continue
                 if color_section and key in color_upper:
                     color_seen.add(key)
+                    _value, comment = _split_inline_comment(match.group(4))
                     out.append(f"{match.group(1)}{match.group(2)}{match.group(3)}"
-                               f"{color_upper[key]}")
+                               f"{color_upper[key]}{comment}")
                     continue
         out.append(line)
 
@@ -595,7 +619,9 @@ def save_values(values, path=None):
             out.append("")
             out.append(f"[{_WEIGHT_SECTION}]")
         for key in sorted(missing_styles, key=_weight_sort_key):
-            out.append(f"{key} = {missing_styles[key]}")
+            name = _style_display_name(key)
+            suffix = f"    ; {name}" if name else ""
+            out.append(f"{key} = {missing_styles[key]}{suffix}")
 
     missing_colors = {k: v for k, v in color_weights.items()
                       if k.upper() not in color_seen}
@@ -604,7 +630,9 @@ def save_values(values, path=None):
             out.append("")
             out.append(f"[{_COLOR_WEIGHT_SECTION}]")
         for key in sorted(missing_colors):
-            out.append(f"{key} = {missing_colors[key]}")
+            family_comment = _color_family_comment(key)
+            suffix = f"    ; {family_comment}" if family_comment else ""
+            out.append(f"{key} = {missing_colors[key]}{suffix}")
 
     with open(path, "w", encoding="utf-8-sig", newline="\r\n") as f:
         f.write("\n".join(out) + "\n")

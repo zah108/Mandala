@@ -155,28 +155,24 @@ Main parameters:
 | `CIRCLE_RADIUS`, `BAND1_WIDTH`…`L5_WIDTH` | see config.py | Center radius and ring widths |
 | `PAINT_LAYER_RINGS` | `true` | Color the layer rings |
 
-The `[Веса стилей]` section controls pattern probabilities: `0` disables
-a pattern, `2` makes it twice as likely. All weights are already listed
-in the file as active lines — edit any value (put comments on their own
-lines above):
+The `[Веса стилей]` section sets pattern probabilities with any numbers:
+`0` disables a pattern, `1` is normal, `2` makes it twice as likely,
+`0.5` — half as likely. Every weight is already listed in the file as an
+active line, with the pattern name in the comment:
 
 ```ini
 [Веса стилей]
-; the "Om" symbol is never picked:
-CENTER_7 = 0
-; "Leaf with vein (45°)" is three times as likely:
-LAYER_5 = 3.0
+CENTER_7 = 0      ; Ом — never picked
+LAYER_5 = 3.0     ; «Лист с прожилкой (45°)» — three times as likely
 ```
 
 The `[Веса цветов]` section works the same way for individual palette
-colors: `0` excludes a color, `2` makes it twice as likely:
+colors; the color's family is written in the comment:
 
 ```ini
 [Веса цветов]
-; this color is never picked:
-WARM_SOFT_#e8a87c = 0
-; twice as likely:
-COOL_BRIGHT_#3d6a99 = 2.0
+WARM_SOFT_#e8a87c = 0     ; Тёплое-мягкое (pastel warm tones)
+COOL_BRIGHT_#3d6a99 = 2.0 ; Холодное-яркое (saturated cool tones)
 ```
 
 Every center, band, layer and every palette color together with its
@@ -189,7 +185,8 @@ file in Notepad while the program is closed is always safe. The full
 reference of styles and colors is in the
 [appendix](#appendix-styles-and-palettes) — and right inside `config.ini`,
 where every style number and every palette color is listed as an active
-line with its weight, while comment lines explain the numbering.
+line with its weight, and the pattern name / palette family is written
+in the comment on the same line.
 
 **Resetting to defaults** — delete a parameter from the file, or the whole
 `config.ini` (it is recreated on the next launch).
