@@ -172,6 +172,20 @@ class CairoTurtle:
         self._fill_cur = None
         self._fill_arc = None
 
+    def reset_state(self):
+        """Возвращает перо в исходное состояние (перед новым рисованием)."""
+        self._x = 0.0
+        self._y = 0.0
+        self._heading = 0.0
+        self._down = True
+        self._color = "black"
+        self._fillcolor = "black"
+        self._width = Config.LINE_WIDTH
+        self._filling = False
+        self._fill_paths = []
+        self._fill_cur = None
+        self._fill_arc = None
+
     def pos(self):
         return (self._x, self._y)
 
@@ -359,6 +373,10 @@ class Screen:
         self.canvas = tk.Canvas(self.root, width=W, height=W,
                                 bg=Config.BG_COLOR, highlightthickness=0)
         self.canvas.pack()
+        # Крестик окна рисования прячет окно (приложение продолжается);
+        # уничтожение окна — только при полном завершении сеанса.
+        self._anim_job = None
+        self.root.protocol("WM_DELETE_WINDOW", self._hide_window)
 
         self.anim_manager = AnimationManager(Config._speed_px_s if hasattr(Config, '_speed_px_s') else 500.0)
         self.scene = Scene()
@@ -417,6 +435,29 @@ class Screen:
     def setup(self, *args, **kwargs): return None
     def delay(self, *args): return None
     def tracer(self, *args): return None
+
+    def _cancel_anim_job(self):
+        """Отменяет запланированный кадр анимации (перед сбросом/скрытием)."""
+        job = self._anim_job
+        if job is not None:
+            try:
+                self.root.after_cancel(job)
+            except Exception:
+                pass
+            self._anim_job = None
+
+    def _hide_window(self):
+        """Крестик окна рисования: прячем окно, приложение продолжается."""
+        self._cancel_anim_job()
+        self._photo = None
+        try:
+            self.root.withdraw()
+        except Exception:
+            pass
+        try:
+            self.root.quit()  # если крутился mainloop (автономный режим) — выходим
+        except Exception:
+            pass
 
     def bye(self):
         self._photo = None
@@ -619,7 +660,20 @@ def apply_draw_speed(level):
 def move_to(x, y):
     t.goto(x, y)
 
-def done(on_finished=None):
+def clear_scene():
+    """Полный сброс перед новым рисованием: сцена, траектория, тайминги, перо."""
+    screen._cancel_anim_job()
+    screen.scene.ops.clear()
+    screen.anim_manager.trajectory.clear()
+    screen.anim_manager.reset()
+    screen._baked = 0
+    screen._anim_finished = False
+    screen._repaint_done()
+    globals()["_timings"] = []
+    t.reset_state()
+
+
+def done(on_finished=None, block=True):
     # Траектория построена — ставим скорость по фактической длине,
     # чтобы реальное время совпало с длительностью уровня.
     duration = screen.anim_manager.draw_duration_s
@@ -628,19 +682,26 @@ def done(on_finished=None):
             screen.anim_manager.total_length / duration)
         Config._speed_px_s = screen.anim_manager.speed_px_s
 
+    screen._cancel_anim_job()
+
     def animate():
         screen.update()
         if screen._anim_finished:
             # Рисование завершено: конечный лог и остановка цикла кадров.
+            screen._anim_job = None
             if on_finished is not None:
                 on_finished()
             return
-        screen.root.after(16, animate)
+        screen._anim_job = screen.root.after(16, animate)
     # Таймер анимации стартует с момента открытия окна,
     # а не с начала построения сцены.
     screen.reset_animation()
     animate()
-    screen.root.mainloop()
+    if block:
+        # Автономный режим (python -m mandala): крутить свой mainloop.
+        # В сеансе с окном настроек (block=False) цикл событий обслуживает
+        # окно настроек/сеанс — см. draw_session.
+        screen.root.mainloop()
 
 def bye():
     screen.bye()

@@ -3,9 +3,12 @@
 Модуль НЕ импортирует runtime — его можно открывать до рабочего окна:
 рисующее окно создаётся позже, в mandala.main.
 
-Окно читает текущие значения Config (после применения config.ini),
-по кнопке «Рисовать»/«Сохранить» пишет их в config.ini и заново
-применяет к Config. Весов стилей в окне нет — они правятся в файле.
+Окно читает текущие значения Config (после применения config.ini);
+кнопки «Рисовать» и «Сохранить config.ini» пишут их в config.ini и заново
+применяют к Config. «Рисовать» окно НЕ закрывает — рисование идёт в своём
+окне (см. draw_session), настройки остаются открытыми. При возврате фокуса
+в окно, если config.ini меняли снаружи, поля перечитываются из файла.
+Весов стилей в окне нет — они правятся прямо в config.ini.
 """
 import os
 import subprocess
@@ -63,10 +66,13 @@ class SettingsDialog(tk.Tk):
 
     def __init__(self, warnings=()):
         super().__init__()
-        self.title("Мандала — настройки рисования")
+        self.title("Мандала – настройки рисования")
         self.resizable(False, False)
         self.result = False
         self._vars = {}
+        self._closing = False
+        self._pump_started = False
+        self._file_stamp = None
 
         outer = ttk.Frame(self, padding=(12, 10))
         outer.grid(row=0, column=0, sticky="nsew")
@@ -84,6 +90,7 @@ class SettingsDialog(tk.Tk):
         self._load_values()
         self._center()
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
+        self.bind("<FocusIn>", self._on_focus_in)
 
     # ------------------------------------------------ построение
     def _build_main(self, frame):
@@ -157,23 +164,18 @@ class SettingsDialog(tk.Tk):
             self._vars[key] = var
 
     def _build_bottom(self, outer, warnings):
-        self._show_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            outer, text="Показывать это окно при каждом запуске",
-            variable=self._show_var).grid(row=2, column=0, sticky="w", pady=(10, 0))
-
         buttons = ttk.Frame(outer)
-        buttons.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        buttons.grid(row=2, column=0, sticky="ew", pady=(10, 0))
         draw = ttk.Button(buttons, text="Рисовать", command=self._on_draw)
         draw.grid(row=0, column=0)
         self.bind("<Return>", lambda event: self._on_draw())
-        ttk.Button(buttons, text="Сохранить", command=self._on_save).grid(
+        ttk.Button(buttons, text="Сохранить config.ini", command=self._on_save).grid(
             row=0, column=1, padx=6)
         ttk.Button(buttons, text="Отмена", command=self._on_cancel).grid(
             row=0, column=2)
 
         links = ttk.Frame(outer)
-        links.grid(row=4, column=0, sticky="w", pady=(10, 0))
+        links.grid(row=3, column=0, sticky="w", pady=(10, 0))
         ttk.Button(links, text="Открыть папку с мандалами", style="Link.TButton",
                    command=lambda: _open_in_explorer(app_paths.images_dir())
                    ).grid(row=0, column=0)
@@ -182,7 +184,7 @@ class SettingsDialog(tk.Tk):
 
         self._status = tk.Label(outer, text="", fg="#555555",
                                 wraplength=460, justify="left")
-        self._status.grid(row=5, column=0, sticky="w", pady=(8, 0))
+        self._status.grid(row=4, column=0, sticky="w", pady=(8, 0))
         if warnings:
             self._set_status(
                 "Замечания по config.ini (применены значения по умолчанию):\n- "
@@ -191,19 +193,30 @@ class SettingsDialog(tk.Tk):
     # ------------------------------------------------ значения
     def _load_values(self):
         values = settings.current_values()
+        # Слайдер скорости не входит в _vars — заполняем его явно из config.ini
+        # (раньше он всегда стоял на уровне 15 — параметр не считывался).
+        speed_raw = values.get("DRAW_SPEED_LEVEL", "15")
+        try:
+            self._speed_scale.set(float(speed_raw))
+        except (TypeError, ValueError):
+            self._speed_scale.set(15)
+        self._refresh_speed_label()
         for key, var in self._vars.items():
-            if key == "DRAW_SPEED_LEVEL":
-                self._speed_scale.set(float(values.get(key, "15")))
-                self._refresh_speed_label()
-                continue
-            if key == "SHOW_SETTINGS_DIALOG":
-                self._show_var.set(values.get(key, "true").lower() == "true")
-                continue
             raw = values.get(key, "")
             if hasattr(var, "_labels"):
                 var.set(var._labels.get(raw.lower(), raw))
             else:
                 var.set(raw)
+        self._mark_file_state()
+
+    def _mark_file_state(self):
+        """Запоминает mtime config.ini, чтобы не перечитывать файл без изменений."""
+        path = app_paths.config_path()
+        try:
+            self._file_stamp = (os.path.getmtime(path)
+                                if os.path.exists(path) else None)
+        except OSError:
+            self._file_stamp = None
 
     def _refresh_speed_label(self):
         level = int(round(float(self._speed_scale.get())))
@@ -256,8 +269,6 @@ class SettingsDialog(tk.Tk):
 
         values["DRAW_SPEED_LEVEL"] = str(
             max(1, min(20, int(round(float(self._speed_scale.get()))))))
-        values["SHOW_SETTINGS_DIALOG"] = (
-            "true" if self._show_var.get() else "false")
         return values, errors
 
     # ------------------------------------------------ действия
@@ -273,19 +284,54 @@ class SettingsDialog(tk.Tk):
             self._set_status(f"Не удалось записать config.ini: {exc}", "#b02020")
             return False
         self._set_status(f"Сохранено: {path}", "#207040")
+        self._mark_file_state()
         return True
 
     def _on_draw(self):
+        """«Рисовать»: сохранить config.ini и рисовать; окно НЕ закрывается."""
         if self._save():
             self.result = True
-            self.destroy()
+            self._start_drawing()
+
+    def _start_drawing(self):
+        from . import draw_session
+        draw_session.launch_or_restart()
+        if not self._pump_started:
+            self._pump_started = True
+            self._pump_drawing()
+
+    def _pump_drawing(self):
+        """Пока окно настроек открыто, обслуживаем и цикл событий окна рисования."""
+        if self._closing:
+            return
+        try:
+            from . import draw_session
+            draw_session.pump()
+        except Exception:
+            pass
+        self.after(15, self._pump_drawing)
 
     def _on_save(self):
         self._save()
 
     def _on_cancel(self):
+        self._closing = True
         self.result = False
         self.destroy()
+
+    def _on_focus_in(self, _event=None):
+        """Возврат фокуса: если config.ini меняли снаружи — перечитать поля."""
+        path = app_paths.config_path()
+        try:
+            stamp = (os.path.getmtime(path)
+                     if os.path.exists(path) else None)
+        except OSError:
+            return
+        if stamp == self._file_stamp:
+            return
+        settings.apply_user_settings()
+        self._load_values()
+        self._set_status("Параметры обновлены из config.ini.", "#207040")
 
     def _open_config(self):
         path = app_paths.config_path()
@@ -315,12 +361,20 @@ class SettingsDialog(tk.Tk):
 
 
 def run(warnings=()):
-    """Показывает окно. True — рисовать, False — завершить приложение."""
+    """Ведёт весь сеанс приложения.
+
+    Окно настроек открыто всегда; кнопка «Рисовать» открывает/перезапускает
+    окно рисования, не закрывая настройки. Приложение завершается, когда
+    закрыты оба окна.
+    """
     try:
         dialog = SettingsDialog(warnings)
         dialog.mainloop()
-        return bool(dialog.result)
     except tk.TclError as exc:
-        # Нет дисплея или сломан Tk — не мешаем рисовать.
+        # Нет дисплея или сломан Tk — оконный сеанс невозможен.
         print(f"Окно настроек недоступно: {exc}")
-        return True
+        return
+    # Диалог закрыт своим крестиком (или «Отменой»); окно рисования,
+    # если оно открыто, обслуживаем до его закрытия.
+    from . import draw_session
+    draw_session.run_until_closed()

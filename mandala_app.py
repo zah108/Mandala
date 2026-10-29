@@ -4,7 +4,9 @@
   1) DPI-awareness — чтобы окно Tk не было размытым на HiDPI-экранах;
   2) предзагрузка Cairo DLL из каталога сборки (cairocffi на Windows
      ищет libcairo-2.dll сама и без подсказки может её не найти);
-  3) окно настроек (если включено) до открытия окна рисования.
+  3) весь сеанс ведёт окно настроек (mandala.settings_dialog): оно открыто
+     всегда; кнопка «Рисовать» открывает/перезапускает окно рисования,
+     не закрывая настройки (см. mandala/draw_session.py).
 
 Запуск из исходников тоже работает:  python mandala_app.py
 """
@@ -89,18 +91,12 @@ def main():
 
     from mandala import app_paths, settings
     app_paths.ensure_dirs()
-    first_run = settings.write_template_if_missing()
+    settings.write_template_if_missing()
     warnings_ = settings.apply_user_settings()
 
-    # При первом запуске окно настроек показываем всегда —
-    # пользователь сразу видит, что можно менять.
-    if first_run or settings.show_dialog_requested():
-        from mandala import settings_dialog
-        if not settings_dialog.run(warnings_):
-            return
-
-    from mandala.main import main as mandala_main
-    mandala_main()
+    # Окно настроек открывается при каждом запуске и ведёт весь сеанс.
+    from mandala import settings_dialog
+    settings_dialog.run(warnings_)
 
 
 if __name__ == "__main__":

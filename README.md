@@ -101,7 +101,8 @@ mandala/
 │                         # PNG/JPG raster via PIL
 ├── app_paths.py         # data locations: images, logs, config.ini
 ├── settings.py          # external config.ini applied over config.py
-├── settings_dialog.py   # settings window (Tkinter) before drawing
+├── settings_dialog.py   # settings window (Tkinter), opens on every launch
+├── draw_session.py      # session: drawing window runs independently of it
 └── cairo_backend.py     # Cairo backend: pycairo (Windows) / cairocffi (dev)
 ```
 

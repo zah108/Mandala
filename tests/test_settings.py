@@ -44,7 +44,6 @@ check(warn == [], "без файла нет предупреждений")
 check(Config.BG_COLOR == "white" and Config.LINE_COLOR == "black", "цвета по умолчанию")
 check(Config.DRAW_SPEED_LEVEL == 15, "скорость по умолчанию 15")
 check(Config.WINDOW_SIZE == 1000, "окно 1000")
-check(settings.show_dialog_requested() is False, "в dev-режиме окно настроек по умолчанию скрыто")
 
 # 2. Корректные переопределения -------------------------------------------
 section("Корректные переопределения")
@@ -57,7 +56,6 @@ good = {
     "LINE_COLOR": "#123456",
     "BG_COLOR": "black",
     "LINE_WIDTH": 2.5,
-    "SHOW_SETTINGS_DIALOG": "true",
     "PAINT_LAYER_RINGS": "false",
     "TIMING_ENABLED": "TRUE",
 }
@@ -69,7 +67,6 @@ check(Config.COLOR_MODE == "no" and Config.PALETTE_CHOICE == "warm_bright", "р�
 check(Config.SAVE_FORMAT == "png", "формат png")
 check(Config.LINE_COLOR == "#123456", "цвет линии применён")
 check(Config.LINE_WIDTH == 2.5, "толщина линии")
-check(settings.show_dialog_requested() is True, "окно настроек включено")
 check(Config.PAINT_LAYER_RINGS is False and Config.TIMING_ENABLED is True, "логические флаги (регистр не важен)")
 
 # 3. Некорректные значения -------------------------------------------------
@@ -112,7 +109,27 @@ check("[Общие]" in text and "[Веса стилей]" in text, "в шабл
 check("DRAW_SPEED_LEVEL = 15" in text, "в шаблоне есть активные параметры")
 check("Радиальные лучи" in text and "Солнце" in text, "в шаблоне есть справочник центров")
 check("[Веса цветов]" in text, "в шаблоне есть секция весов цветов")
-check("; WARM_SOFT_#e8a87c = 1.0" in text, "цвета перечислены в шаблоне")
+check("SHOW_SETTINGS_DIALOG" not in text, "устаревший параметр в шаблон не пишется")
+weight_lines = [l for l in text.splitlines()
+                if l and not l.startswith((";", "#"))
+                and any(l.startswith(p) for p in ("CENTER_", "BAND_", "LAYER_"))]
+total_styles = (len(Config.CENTER_STYLES) + len(Config.BAND_STYLES)
+                + len(Config.LAYER_STYLES))
+check(len(weight_lines) == total_styles,
+      f"все {total_styles} весов узоров в шаблоне активны (найдено {len(weight_lines)})")
+total_colors = sum(len(d["colors"]) for d in Config.COLOR_FAMILIES.values())
+color_lines = [l for l in text.splitlines()
+               if l and not l.startswith((";", "#")) and "_#" in l and " = " in l]
+check(len(color_lines) == total_colors,
+      f"все {total_colors} цветов в шаблоне активны (найдено {len(color_lines)})")
+check("WARM_SOFT_#e8a87c = 1" in text and "; WARM_SOFT_" not in text,
+      "цвета перечислены активными строками, без закомментированных примеров")
+
+# 5a. Устаревший ключ игнорируется молча ----------------------------------
+legacy = temp_ini("[Общие]\nSHOW_SETTINGS_DIALOG = true\n")
+warn = settings.apply_user_settings(ini_path=legacy)
+check(warn == [],
+      f"устаревший SHOW_SETTINGS_DIALOG игнорируется молча (получено: {warn})")
 
 # 6. save_values сохраняет и восстанавливает -------------------------------
 section("save_values")
@@ -120,13 +137,11 @@ out = temp_ini("")
 settings.apply_user_settings(overrides={"DRAW_SPEED_LEVEL": 3, "PALETTE_CHOICE": "cool_bright"},
                              ini_path=missing)
 settings.save_values({"DRAW_SPEED_LEVEL": "3", "PALETTE_CHOICE": "cool_bright",
-                      "WINDOW_SIZE": "700", "COLOR_MODE": "yes",
-                      "SHOW_SETTINGS_DIALOG": "false"}, path=out)
+                      "WINDOW_SIZE": "700", "COLOR_MODE": "yes"}, path=out)
 warn = settings.apply_user_settings(ini_path=out)
 check(warn == [], f"сохранённый файл читается без предупреждений (получено: {warn})")
 check(Config.DRAW_SPEED_LEVEL == 3 and Config.WINDOW_SIZE == 700, "значения после перечитывания")
 check(Config.CENTER_STYLES[7]["weight"] == 1.0, "веса вернулись к 1.0 (не сохранялись)")
-check(settings.show_dialog_requested() is False, "галочка окна сохранена")
 
 # 7. app_paths -------------------------------------------------------------
 section("app_paths (dev-режим)")
@@ -182,6 +197,7 @@ check("DRAW_SPEED_LEVEL = 9" in text2, "новое значение дописа
 check(any(line.strip() in ("CENTER_2 = 3", "CENTER_2 = 3.0")
           for line in text2.splitlines()), "активный вес стиля сохранён")
 check("; CENTER_3 = 1.0" in text2, "закомментированный пример не тронут")
+check("\nCENTER_3 = 1" in text2, "полный список весов дописан активными строками")
 warn = settings.apply_user_settings(ini_path=work)
 check(Config.DRAW_SPEED_LEVEL == 9 and Config.WINDOW_SIZE == 900,
       "всё перечитывается после сохранения")

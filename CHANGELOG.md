@@ -10,7 +10,27 @@ PDF export.
 
 ---
 
-## 2.3 (unreleased)
+## 2.4 (unreleased)
+
+- The settings window now opens on every launch. The "Показывать это окно
+  при каждом запуске" checkbox was removed along with the
+  `SHOW_SETTINGS_DIALOG` config key (the key is silently ignored in old
+  `config.ini` files).
+- "Рисовать" no longer closes the settings window: drawing runs in its own
+  window while the settings stay open, so several mandalas can be drawn in
+  a row. The close button of the drawing window only hides that window;
+  the settings window closes only via its own close button. The app exits
+  when both windows are closed.
+- The "Сохранить" button is renamed to "Сохранить config.ini".
+- Fixed: the drawing-speed slider was never initialized from `config.ini`
+  (it always started at level 15 regardless of the file).
+- The settings window re-reads `config.ini` when it regains focus after
+  the file was edited externally.
+- `config.ini` now lists every pattern weight (centers, bands, layers) and
+  every palette color weight as an active editable line, instead of
+  commented examples only.
+
+## 2.3
 
 - `config.ini` is no longer regenerated wholesale when saved from the
   settings window: known values are updated in place, while user comments,

@@ -161,7 +161,16 @@ def _mandala_name():
     return f"{date_str}-mandala-{random_id}"
 
 
-def main():
+def main(block=True):
+    """Полный цикл: новая мандала от выбора стилей до окна с готовым рисунком.
+
+    block=True — автономный режим (python -m mandala): рисующее окно
+    обслуживается своим mainloop до закрытия. block=False — окно обслуживается
+    внешним циклом событий сеанса (окно настроек остаётся открытым,
+    см. draw_session).
+    """
+    # Новый рисунок всегда с чистой сцены (при первом запуске — безвредно).
+    runtime.clear_scene()
     runtime.apply_draw_speed(Config.DRAW_SPEED_LEVEL)
     selection.init()
 
@@ -248,7 +257,7 @@ def main():
         timing_msg = runtime._timing_report()
         logging_utils.write_end_log(log_path, end_report, timing_msg)
 
-    runtime.done(_on_drawing_finished)
+    runtime.done(_on_drawing_finished, block=block)
 
 
 if __name__ == "__main__":

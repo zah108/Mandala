@@ -32,7 +32,6 @@ _PALETTES = ("random", "all", "warm_soft", "cool_soft", "warm_bright", "cool_bri
 #   ("int", min, max) / ("float", min, max) / ("choice", (варианты...))
 #   "bool" / "color"
 _PARAMS = {
-    "SHOW_SETTINGS_DIALOG": ("Общие", "bool"),
     "WINDOW_SIZE": ("Общие", ("int", 400, 2000)),
     "PAINT_LAYER_RINGS": ("Общие", "bool"),
     "TIMING_ENABLED": ("Общие", "bool"),
@@ -72,7 +71,6 @@ _WEIGHT_TARGETS = (
 )
 
 _COMMENTS = {
-    "SHOW_SETTINGS_DIALOG": "Показывать окно настроек при каждом запуске (true/false)",
     "WINDOW_SIZE": "Размер окна рисования в пикселях (400..2000)",
     "PAINT_LAYER_RINGS": "Раскрашивать кольца вокруг слоёв лепестков (true/false)",
     "TIMING_ENABLED": "Подробные замеры времени фаз в логе (true/false)",
@@ -96,7 +94,6 @@ _COMMENTS = {
     "SAVE_FORMAT": "Формат сохранения: pdf (вектор), png или jpg",
 }
 
-_dialog_pref = {"show": app_paths.is_frozen()}
 _warnings = []
 _applied = False
 
@@ -108,7 +105,6 @@ def restore_defaults():
     """Возвращает Config к значениям из config.py."""
     for key, value in _DEFAULTS.items():
         setattr(Config, key, copy.deepcopy(value))
-    _dialog_pref["show"] = app_paths.is_frozen()
 
 
 def fmt_value(value):
@@ -122,10 +118,7 @@ def fmt_value(value):
 
 def current_values():
     """Текущие значения всех управляемых параметров (для окна настроек)."""
-    values = {key: fmt_value(getattr(Config, key)) for key in _PARAMS
-              if key != "SHOW_SETTINGS_DIALOG"}
-    values["SHOW_SETTINGS_DIALOG"] = "true" if _dialog_pref["show"] else "false"
-    return values
+    return {key: fmt_value(getattr(Config, key)) for key in _PARAMS}
 
 
 def duration_for_level(level):
@@ -133,10 +126,6 @@ def duration_for_level(level):
     lvl = max(1, min(20, int(level)))
     span = Config.SPEED_DURATION_MAX_S - Config.SPEED_DURATION_MIN_S
     return Config.SPEED_DURATION_MAX_S - span * (lvl - 1) / 19.0
-
-
-def show_dialog_requested():
-    return bool(_dialog_pref["show"])
 
 
 def last_warnings():
@@ -185,13 +174,6 @@ def _parse_choice(raw, choices):
 def _apply_one(key, raw):
     """Применяет один параметр; возвращает предупреждение или None."""
     section, rule = _PARAMS[key]
-
-    if key == "SHOW_SETTINGS_DIALOG":
-        parsed = _parse_bool(raw)
-        if parsed is None:
-            return f"{key} = {raw!r}: ожидалось true/false"
-        _dialog_pref["show"] = parsed
-        return None
 
     display = fmt_value(getattr(Config, key))
 
@@ -319,7 +301,10 @@ def apply_user_settings(overrides=None, ini_path=None):
                 if not parser.has_section(section):
                     continue
                 for option in parser.options(section):
-                    if option.upper() not in known:
+                    upper = option.upper()
+                    if upper == "SHOW_SETTINGS_DIALOG":
+                        continue  # устаревший ключ старых версий — игнорируем молча
+                    if upper not in known:
                         _warnings.append(
                             f"[{section}] {option}: неизвестный параметр, пропущен"
                         )
@@ -383,24 +368,24 @@ def _styles_reference_lines():
     return refs
 
 
-def _color_weight_section_lines(active_values=None):
-    """Секция [Веса цветов]: по умолчанию всё закомментировано."""
+def _color_weight_section_lines(extra=None):
+    """Секция [Веса цветов]: все цвета перечислены активными строками."""
     lines = [
         f"[{_COLOR_WEIGHT_SECTION}]",
         "; Веса отдельных цветов палитры: 0 — цвет не используется,",
         "; 1 — обычная, 2 — вдвое чаще. Формат: <СЕМЕЙСТВО>_<#hex>.",
-        "; Раскомментируйте строку и поменяйте значение:",
+        "; Меняйте значения после «=»:",
     ]
+    values = _all_color_weights()
+    if extra:
+        values.update({k: str(v) for k, v in extra.items()})
     for family, data in Config.COLOR_FAMILIES.items():
         comment = data.get("comment", "")
         lines.append(";")
         lines.append(f"; {family} — {comment}:")
         for color in data["colors"]:
             key = f"{family.upper()}_{color['hex']}"
-            if active_values and key in active_values:
-                lines.append(f"{key} = {active_values[key]}")
-            else:
-                lines.append(f"; {key} = 1.0")
+            lines.append(f"{key} = {values[key]}")
     return lines
 
 
@@ -418,25 +403,20 @@ def _split_weights(weights):
     return styles, colors
 
 
-def _weight_lines(active_values=None):
-    """Строки секции весов.
-
-    active_values — {ключ: значение}, которые надо записать активными;
-    иначе в шаблоне остаются только пояснения и примеры в комментариях.
-    """
+def _weight_lines(extra=None):
+    """Строки секции весов: все узоры перечислены активными строками."""
     lines = [
         f"[{_WEIGHT_SECTION}]",
         "; Вероятности выбора узоров: 0 — узор не используется, 1 — обычная,",
         "; 2 — вдвое чаще. Формат ключа: CENTER_<номер>, BAND_<номер>, LAYER_<номер>.",
+        "; Меняйте значения после «=».",
     ]
     lines.extend(_styles_reference_lines())
-    lines.append("; Ниже примеры (раскомментируйте и поменяйте значение):")
-    lines.append("; CENTER_1 = 1.0")
-    lines.append("; BAND_3 = 0")
-    lines.append("; LAYER_5 = 2.0")
-    if active_values:
-        for key in sorted(active_values):
-            lines.append(f"{key} = {active_values[key]}")
+    values = _all_style_weights()
+    if extra:
+        values.update({k: str(v) for k, v in extra.items()})
+    for key in sorted(values, key=_weight_sort_key):
+        lines.append(f"{key} = {values[key]}")
     return lines
 
 
@@ -472,19 +452,14 @@ def template_text(values=None, weights=None):
             comment = _COMMENTS.get(key)
             if comment:
                 lines.append(f"; {comment}")
-            if key in values:
-                value = values[key]
-            elif key == "SHOW_SETTINGS_DIALOG":
-                value = "true" if _dialog_pref["show"] else "false"
-            else:
-                value = fmt_value(getattr(Config, key))
+            value = values[key] if key in values else fmt_value(getattr(Config, key))
             lines.append(f"{key} = {value}")
         lines.append("")
 
-    style_weights, color_weights = _split_weights(weights)
-    lines.extend(_weight_lines(style_weights))
+    style_extra, color_extra = _split_weights(weights) if weights else ({}, {})
+    lines.extend(_weight_lines(style_extra))
     lines.append("")
-    lines.extend(_color_weight_section_lines(color_weights))
+    lines.extend(_color_weight_section_lines(color_extra))
     lines.append("")
     return "\n".join(lines)
 
@@ -508,20 +483,34 @@ def write_template_if_missing(path=None):
     return False
 
 
-def _active_weights():
-    """Все веса, отличные от 1.0: стили и цвета -> {ключ: значение}."""
-    weights = {}
-    for prefix, attr in _WEIGHT_TARGETS:
-        for index, style in getattr(Config, attr).items():
-            weight = float(style.get("weight", 1.0))
-            if weight != 1.0:
-                weights[f"{prefix}{index}"] = fmt_value(weight)
-    for family, data in Config.COLOR_FAMILIES.items():
-        for color in data["colors"]:
-            weight = float(color.get("weight", 1.0))
-            if weight != 1.0:
-                weights[f"{family.upper()}_{color['hex']}"] = fmt_value(weight)
-    return weights
+def _all_style_weights():
+    """Все веса стилей (CENTER_/BAND_/LAYER_) текущего состояния Config."""
+    return {
+        f"{prefix}{index}": fmt_value(float(style.get("weight", 1.0)))
+        for prefix, attr in _WEIGHT_TARGETS
+        for index, style in getattr(Config, attr).items()
+    }
+
+
+def _all_color_weights():
+    """Все веса цветов палитр текущего состояния Config."""
+    return {
+        f"{family.upper()}_{color['hex']}": fmt_value(float(color.get("weight", 1.0)))
+        for family, data in Config.COLOR_FAMILIES.items()
+        for color in data["colors"]
+    }
+
+
+def _weight_sort_key(key):
+    """Порядок строк весов: CENTER_, BAND_, LAYER_, внутри — по номеру."""
+    for pos, prefix in enumerate(("CENTER_", "BAND_", "LAYER_")):
+        if key.startswith(prefix):
+            tail = key[len(prefix):]
+            try:
+                return (pos, int(tail), key)
+            except ValueError:
+                return (pos, 10 ** 6, key)
+    return (9, 0, key)
 
 
 def save_values(values, path=None):
@@ -530,7 +519,8 @@ def save_values(values, path=None):
     Файл правится построчно: у известных ключей обновляется значение после
     «=», недостающие известные ключи дописываются в конец, а комментарии,
     порядок строк и незнакомые записи остаются как есть. Если файла нет —
-    создаётся полный шаблон.
+    создаётся полный шаблон. Веса стилей и цветов при записи перечисляются
+    полностью, активными строками.
     """
     path = path or app_paths.config_path()
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -539,14 +529,14 @@ def save_values(values, path=None):
     for key, value in (values or {}).items():
         if key in _PARAMS:
             targets[key] = str(value)
-    weights = _active_weights()
-    style_weights, color_weights = _split_weights(weights)
+    style_weights = _all_style_weights()
+    color_weights = _all_color_weights()
     style_upper = {k.upper(): v for k, v in style_weights.items()}
     color_upper = {k.upper(): v for k, v in color_weights.items()}
     targets_upper = {k.upper(): k for k in targets}
 
     if not os.path.exists(path) or os.path.getsize(path) == 0:
-        write_template(path, values=targets, weights=weights)
+        write_template(path, values=targets)
         return path
 
     with open(path, encoding="utf-8-sig") as f:
@@ -604,7 +594,7 @@ def save_values(values, path=None):
         if not style_section:
             out.append("")
             out.append(f"[{_WEIGHT_SECTION}]")
-        for key in sorted(missing_styles):
+        for key in sorted(missing_styles, key=_weight_sort_key):
             out.append(f"{key} = {missing_styles[key]}")
 
     missing_colors = {k: v for k, v in color_weights.items()

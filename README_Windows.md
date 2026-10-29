@@ -90,7 +90,7 @@ between runs.
 
 Shortcuts: **Start → Mandala Generator** and, optionally, the desktop.
 
-On the first launch a **settings window** opens — adjust the parameters
+On every launch a **settings window** opens — adjust the parameters
 and click "Draw" (the button is labelled in Russian).
 
 ---
@@ -102,8 +102,7 @@ the same `config.ini` file.
 
 ### Settings window
 
-Shown on every launch (clear the "Show this window on every launch"
-checkbox to skip it and start drawing immediately).
+Opens on every launch and lives independently of the drawing window.
 
 - **Drawing speed** — slider 1–20 with a time estimate
   (1 — slow, about 7 minutes; 20 — fast, about 4 seconds);
@@ -115,8 +114,11 @@ checkbox to skip it and start drawing immediately).
 - **Ring sizes** — center radius and band/layer widths (advanced);
 - Buttons "Open the mandala folder" and "Open config.ini".
 
-The **"Draw"** button saves the parameters and starts the generation;
-**"Save"** only saves them.
+The **"Draw"** button saves the parameters and starts the generation in
+its own window **without closing** the settings window — you can change
+parameters and draw several mandalas in a row. **"Save config.ini"** only
+saves them. The settings window closes only via its own close button;
+closing the "Mandala Generator" window does not affect it.
 
 The interface of the settings window is in Russian; the values map
 one-to-one onto the `config.ini` keys below.
@@ -154,12 +156,16 @@ Main parameters:
 | `PAINT_LAYER_RINGS` | `true` | Color the layer rings |
 
 The `[Веса стилей]` section controls pattern probabilities: `0` disables
-a pattern, `2` makes it twice as likely. For example:
+a pattern, `2` makes it twice as likely. All weights are already listed
+in the file as active lines — edit any value (put comments on their own
+lines above):
 
 ```ini
 [Веса стилей]
-CENTER_7 = 0     ; the "Om" symbol is never picked
-LAYER_5 = 3.0    ; "Leaf with vein (45°)" is three times as likely
+; the "Om" symbol is never picked:
+CENTER_7 = 0
+; "Leaf with vein (45°)" is three times as likely:
+LAYER_5 = 3.0
 ```
 
 The `[Веса цветов]` section works the same way for individual palette
@@ -167,17 +173,23 @@ colors: `0` excludes a color, `2` makes it twice as likely:
 
 ```ini
 [Веса цветов]
-WARM_SOFT_#e8a87c = 0     ; this color is never picked
-COOL_BRIGHT_#3d6a99 = 2.0 ; twice as likely
+; this color is never picked:
+WARM_SOFT_#e8a87c = 0
+; twice as likely:
+COOL_BRIGHT_#3d6a99 = 2.0
 ```
+
+Every center, band, layer and every palette color together with its
+probability is already listed in `config.ini` as an active line — the
+file contains the full parameter set.
 
 **Edits are never lost:** the settings window updates known values in
 place and keeps your comments, line order and unknown lines. Editing the
 file in Notepad while the program is closed is always safe. The full
 reference of styles and colors is in the
 [appendix](#appendix-styles-and-palettes) — and right inside `config.ini`,
-where every style number and every palette color is listed as a commented
-reference line.
+where every style number and every palette color is listed as an active
+line with its weight, while comment lines explain the numbering.
 
 **Resetting to defaults** — delete a parameter from the file, or the whole
 `config.ini` (it is recreated on the next launch).
@@ -237,15 +249,13 @@ exclusions, or build it yourself from the sources on your machine.
 in the logs directory (see the table above). Send that file to whoever
 builds the program.
 
-**The settings window is annoying.** Clear the "Show this window on every
-launch" checkbox — parameters can be edited in `config.ini` as well.
+**The settings window opens on every launch — by design.** If it is in
+the way, close it: an already started drawing keeps running, and the
+parameters can be edited in `config.ini` (the window re-reads the file
+when you switch back to it).
 
 **config.ini cannot be found.** Press Win+R, paste
 `%APPDATA%\Mandala\config.ini`, press Enter.
-
-**I want the settings window back.** Set
-`SHOW_SETTINGS_DIALOG = true` in `config.ini` (section «Общие») — or
-simply delete the file.
 
 ---
 
@@ -369,7 +379,8 @@ Each family contains 11 colors; weight keys in `[Веса цветов]` are
 ```
 mandala\                     # package source code (see README.md)
 ├── settings.py              # reads config.ini, applies it to Config
-├── settings_dialog.py       # settings window shown before drawing
+├── settings_dialog.py       # settings window (opens on every launch)
+├── draw_session.py          # session: drawing window runs independently
 ├── app_paths.py             # data locations: mandalas, logs, config.ini
 └── cairo_backend.py         # Cairo backend: pycairo (Windows) / cairocffi
 mandala_app.py               # entry point of the packaged application
