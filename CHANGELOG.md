@@ -29,7 +29,11 @@ PDF export.
 - `config.ini` now lists every pattern weight (centers, bands, layers) and
   every palette color weight as an active editable line — with the pattern
   name / palette family written as a comment on the same line — instead of
-  commented examples only. Weights accept any numbers (0 — off, 1 — normal,
+  commented examples only. The large commented style reference block was
+  removed from the file (pattern names now sit on the weight lines
+  themselves). Section headers explain the weight scale: "Выберите вес
+  стиля/цвета: 0 — не используется, чем больше цифра — тем выше вероятность
+  использования". Weights accept any numbers (0 — off, 1 — normal,
   higher/lower — more/less likely). Inline comments after a value are now
   supported (`;` only, never `#`) and are preserved when the settings
   window saves the file.
