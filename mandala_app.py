@@ -92,6 +92,7 @@ def main():
     from mandala import app_paths, settings
     app_paths.ensure_dirs()
     settings.write_template_if_missing()
+    settings.upgrade_config_if_old()
     warnings_ = settings.apply_user_settings()
 
     # Окно настроек открывается при каждом запуске и ведёт весь сеанс.

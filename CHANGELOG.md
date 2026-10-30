@@ -37,6 +37,11 @@ PDF export.
   higher/lower — more/less likely). Inline comments after a value are now
   supported (`;` only, never `#`) and are preserved when the settings
   window saves the file.
+- Migration: on launch, a `config.ini` of the old (pre-2.4) format is
+  automatically rewritten in the new format — the user's values are
+  carried over (speed, color mode, weights, etc.). The old file is
+  replaced without backup copies, so exactly one `config.ini` remains.
+  Files already in the new format are untouched.
 - Both windows share a single hidden Tk root, which fixes an empty drawing
   window ("image pyimageN doesn't exist") and the settings window closing
   together with the drawing window; launch errors are reported in the

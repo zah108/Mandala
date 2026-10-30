@@ -504,6 +504,58 @@ def write_template_if_missing(path=None):
     return False
 
 
+_TEMPLATE_MARKER = "Выберите вес стиля"
+
+
+def _read_known_values(path):
+    """{ключ: значение} и веса из старого config.ini (без комментариев)."""
+    parser = configparser.ConfigParser(strict=False)
+    parser.optionxform = str
+    try:
+        parser.read(path, encoding="utf-8-sig")
+    except configparser.Error:
+        return {}, {}
+    raw = {}
+    for section in parser.sections():
+        for option, value in parser.items(section):
+            key = option.strip()
+            if "#" in key:
+                # Ключ веса цвета: семейство — в верхний регистр,
+                # hex оставить как есть (в шаблоне hex в нижнем регистре).
+                head, tail = key.split("#", 1)
+                key = head.upper() + "#" + tail
+            else:
+                key = key.upper()
+            raw[key] = value.strip()
+    values = {k: v for k, v in raw.items() if k in _PARAMS}
+    # Прочие известные ключи — веса стилей и цветов (проверку префиксов
+    # делает _split_weights в template_text); инлайн-комментарии срезаем,
+    # шаблон добавит свои.
+    weights = {
+        k: _split_inline_comment(v)[0].strip()
+        for k, v in raw.items()
+        if k not in _PARAMS
+    }
+    return values, weights
+
+
+def upgrade_config_if_old(path=None, ini_path=None):
+    """Перезаписывает config.ini старого формата (до 2.4) новым шаблоном.
+
+    Значения известных параметров и весов переносятся, прежний файл
+    заменяется без копий. Файл нового формата не трогает.
+    """
+    path = ini_path or path or app_paths.config_path()
+    if not os.path.exists(path):
+        return False
+    with open(path, encoding="utf-8-sig") as f:
+        if _TEMPLATE_MARKER in f.read():
+            return False
+    values, weights = _read_known_values(path)
+    write_template(path, values=values, weights=weights)
+    return True
+
+
 def _all_style_weights():
     """Все веса стилей (CENTER_/BAND_/LAYER_) текущего состояния Config."""
     return {

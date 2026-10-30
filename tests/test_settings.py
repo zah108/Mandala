@@ -223,6 +223,44 @@ check(Config.DRAW_SPEED_LEVEL == 9 and Config.WINDOW_SIZE == 900,
 check(Config.CENTER_STYLES[2]["weight"] == 3.0,
       "вес стиля перечитался после сохранения")
 
+# 10. Обновление старого config.ini (до 2.4) --------------------------------
+section("Обновление старого config.ini")
+old_style = temp_ini(
+    "[Общие]\n"
+    "SHOW_SETTINGS_DIALOG = true\n"
+    "WINDOW_SIZE = 900\n"
+    "[Рисование]\n"
+    "DRAW_SPEED_LEVEL = 19\n"
+    "[Веса стилей]\n"
+    "CENTER_7 = 2\n"
+    "; BAND_3 = 0\n"
+    "[Веса цветов]\n"
+    "COOL_BRIGHT_#2a9d8f = 2.5\n"
+)
+upgraded = settings.upgrade_config_if_old(ini_path=old_style)
+check(upgraded is True, "старый файл обнаружен и обновлён")
+check(not os.path.exists(old_style + ".bak"), "копия .bak не создаётся")
+text3 = open(old_style, encoding="utf-8-sig").read()
+check("Выберите вес стиля" in text3, "новая шапка секции весов")
+check("SHOW_SETTINGS_DIALOG" not in text3, "устаревший ключ не перенесён")
+check("WINDOW_SIZE = 900" in text3, "значение пользователя перенесено")
+check("DRAW_SPEED_LEVEL = 19" in text3, "скорость перенесена")
+check("CENTER_7 = 2" in text3, "вес стиля пользователя перенесён")
+check("; BAND_3 = 0" not in text3, "закомментированные примеры удалены")
+check(any(l.startswith("BAND_3 = 1") and "Зигзаг" in l
+          for l in text3.splitlines()), "все веса активны, с названиями")
+check(any(l.startswith("COOL_BRIGHT_#2a9d8f = 2.5") and "Холодное-яркое" in l
+          for l in text3.splitlines()), "вес цвета перенесён")
+warn = settings.apply_user_settings(ini_path=old_style)
+check(warn == [], f"обновлённый файл читается без предупреждений ({warn})")
+check(Config.CENTER_STYLES[7]["weight"] == 2.0, "вес CENTER_7 применился")
+check(Config.COLOR_FAMILIES["cool_bright"]["colors"][0]["weight"] == 2.5,
+      "вес цвета применился")
+check(settings.upgrade_config_if_old(ini_path=old_style) is False,
+      "повторный вызов новый формат не трогает")
+check(settings.upgrade_config_if_old(ini_path=missing) is False,
+      "отсутствующий файл — без ошибки")
+
 print("\n" + "=" * 50)
 if FAILED:
     print(f"ПРОВАЛЕНО: {len(FAILED)}")
