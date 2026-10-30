@@ -20,9 +20,9 @@ The code was written using LLM (Large Language Model).
 
 <div align="center">
 
-<img src="list-1.jpg" width="300" alt="mandala all palette">
+<img src="docs/list-1.jpg" width="300" alt="mandala all palette">
 &nbsp; &nbsp; &nbsp; &nbsp;
-<img src="list-2.jpg" width="300" alt="mandala warm soft">
+<img src="docs/list-2.jpg" width="300" alt="mandala warm soft">
 
 </div>
 
