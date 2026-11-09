@@ -10,7 +10,27 @@ PDF export.
 
 ---
 
-## 2.4 (unreleased)
+## 2.5
+
+- `config.ini` is now the settings layer of the Windows build only. When
+  running from sources, all drawing parameters are taken from `config.py`
+  alone: `config.ini` is not read, not created, and not migrated in this
+  mode, so edits to `config.py` take effect immediately.
+- The Windows build works as before: `config.ini` is created automatically
+  on first launch, migrated from the old format, applied on startup, and
+  edited by the settings window.
+- Settings window (runs from sources): "Save" and "Draw" apply the values
+  to the current session only and do not modify `config.ini` (the status
+  bar explains this). Re-reading `config.ini` when the window regains focus
+  after external edits, and creating the file via the "Открыть config.ini"
+  link when it is missing, are likewise limited to the Windows build.
+- New defaults in `config.py`: draw speed level 15 → 20 (fastest), center
+  pattern "Ом" (Om) weight 1 → 5 (much more likely to be used), coloring
+  mode "yes" → "no" (outline-only drawing by default). Windows installs with
+  an existing `config.ini` keep their own values; the new defaults apply to
+  fresh installations and to runs from sources.
+
+## 2.4
 
 - The settings window now opens on every launch. The "Показывать это окно
   при каждом запуске" checkbox was removed along with the
