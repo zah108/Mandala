@@ -42,7 +42,8 @@ missing = os.path.join(tempfile.mkdtemp(), "net-faila.ini")
 warn = settings.apply_user_settings(ini_path=missing)
 check(warn == [], "без файла нет предупреждений")
 check(Config.BG_COLOR == "white" and Config.LINE_COLOR == "black", "цвета по умолчанию")
-check(Config.DRAW_SPEED_LEVEL == 15, "скорость по умолчанию 15")
+check(Config.DRAW_SPEED_LEVEL == settings._DEFAULTS["DRAW_SPEED_LEVEL"],
+      "скорость по умолчанию — как в config.py")
 check(Config.WINDOW_SIZE == 1000, "окно 1000")
 
 # 2. Корректные переопределения -------------------------------------------
@@ -76,9 +77,11 @@ warn = settings.apply_user_settings(
                "COLOR_MODE": "sometimes", "BG_COLOR": "darker"},
     ini_path=missing)
 check(len(warn) == 4, f"четыре предупреждения (получено {len(warn)}: {warn})")
-check(Config.DRAW_SPEED_LEVEL == 15, "скорость откатилась к 15")
+check(Config.DRAW_SPEED_LEVEL == settings._DEFAULTS["DRAW_SPEED_LEVEL"],
+      "скорость откатилась к умолчанию из config.py")
 check(Config.WINDOW_SIZE == 2000, "окно обрезано до 2000")
-check(Config.COLOR_MODE == "yes", "режим раскраски по умолчанию")
+check(Config.COLOR_MODE == settings._DEFAULTS["COLOR_MODE"],
+      "режим раскраски по умолчанию из config.py")
 check(Config.BG_COLOR == "white", "цвет фона по умолчанию")
 
 # 4. Веса стилей из ini ----------------------------------------------------
@@ -103,10 +106,12 @@ settings.apply_user_settings(ini_path=missing)  # сброс
 tpl = temp_ini(settings.template_text())
 warn = settings.apply_user_settings(ini_path=tpl)
 check(warn == [], f"шаблон читается без предупреждений (получено: {warn})")
-check(Config.DRAW_SPEED_LEVEL == 15 and Config.BG_COLOR == "white", "значения из шаблона совпали с умолчаниями")
+check(Config.DRAW_SPEED_LEVEL == settings._DEFAULTS["DRAW_SPEED_LEVEL"] and Config.BG_COLOR == "white",
+      "значения из шаблона совпали с умолчаниями")
 text = open(tpl, encoding="utf-8-sig").read()
 check("[Общие]" in text and "[Веса стилей]" in text, "в шаблоне есть все секции")
-check("DRAW_SPEED_LEVEL = 15" in text, "в шаблоне есть активные параметры")
+check(f"DRAW_SPEED_LEVEL = {settings._DEFAULTS['DRAW_SPEED_LEVEL']}" in text,
+      "в шаблоне есть активные параметры")
 check("Радиальные лучи" in text and "Солнце" in text, "в шаблоне есть справочник центров")
 check("[Веса цветов]" in text, "в шаблоне есть секция весов цветов")
 check("SHOW_SETTINGS_DIALOG" not in text, "устаревший параметр в шаблон не пишется")
@@ -156,7 +161,8 @@ settings.save_values({"DRAW_SPEED_LEVEL": "3", "PALETTE_CHOICE": "cool_bright",
 warn = settings.apply_user_settings(ini_path=out)
 check(warn == [], f"сохранённый файл читается без предупреждений (получено: {warn})")
 check(Config.DRAW_SPEED_LEVEL == 3 and Config.WINDOW_SIZE == 700, "значения после перечитывания")
-check(Config.CENTER_STYLES[7]["weight"] == 1.0, "веса вернулись к 1.0 (не сохранялись)")
+check(Config.CENTER_STYLES[7]["weight"] == settings._DEFAULTS["CENTER_STYLES"][7]["weight"],
+      "веса остались по умолчанию из config.py (не сохранялись)")
 
 # 7. app_paths -------------------------------------------------------------
 section("app_paths (dev-режим)")

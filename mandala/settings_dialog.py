@@ -194,8 +194,8 @@ class SettingsDialog(tk.Toplevel):
     # ------------------------------------------------ значения
     def _load_values(self):
         values = settings.current_values()
-        # Слайдер скорости не входит в _vars — заполняем его явно из config.ini
-        # (раньше он всегда стоял на уровне 15 — параметр не считывался).
+        # Слайдер скорости не входит в _vars — заполняем его явно
+        # из текущих значений Config (раньше он всегда стоял на уровне 15).
         speed_raw = values.get("DRAW_SPEED_LEVEL", "15")
         try:
             self._speed_scale.set(float(speed_raw))
@@ -278,13 +278,22 @@ class SettingsDialog(tk.Toplevel):
         if errors:
             self._set_status("Не сохранено:\n- " + "\n- ".join(errors), "#b02020")
             return False
-        try:
-            path = settings.save_values(values)
-            settings.apply_user_settings()
-        except OSError as exc:
-            self._set_status(f"Не удалось записать config.ini: {exc}", "#b02020")
-            return False
-        self._set_status(f"Сохранено: {path}", "#207040")
+        if settings.ini_enabled():
+            try:
+                path = settings.save_values(values)
+                settings.apply_user_settings()
+            except OSError as exc:
+                self._set_status(f"Не удалось записать config.ini: {exc}", "#b02020")
+                return False
+            self._set_status(f"Сохранено: {path}", "#207040")
+        else:
+            # Запуск из исходников: config.ini не трогаем (слой собранного
+            # приложения), значения применяются к текущему сеансу.
+            settings.apply_user_settings(overrides=values)
+            self._set_status(
+                "Применено к текущему сеансу (config.ini не изменялся —"
+                "\nпри запуске из исходников параметры берутся из config.py).",
+                "#207040")
         self._mark_file_state()
         return True
 
@@ -311,7 +320,13 @@ class SettingsDialog(tk.Toplevel):
         draw_session.note_dialog_closed()
 
     def _on_focus_in(self, _event=None):
-        """Возврат фокуса: если config.ini меняли снаружи — перечитать поля."""
+        """Возврат фокуса: если config.ini меняли снаружи — перечитать поля.
+
+        Только в собранном приложении: при запуске из исходников
+        config.ini не читается (параметры берутся из config.py).
+        """
+        if not settings.ini_enabled():
+            return
         path = app_paths.config_path()
         try:
             stamp = (os.path.getmtime(path)
@@ -327,6 +342,12 @@ class SettingsDialog(tk.Toplevel):
     def _open_config(self):
         path = app_paths.config_path()
         if not os.path.exists(path):
+            if not settings.ini_enabled():
+                self._set_status(
+                    "config.ini отсутствует: он используется только собранным"
+                    "\nприложением (при запуске из исходников параметры"
+                    "\nберутся из config.py).", "#a05000")
+                return
             try:
                 path = settings.write_template(path)
             except OSError as exc:

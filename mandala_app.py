@@ -91,6 +91,8 @@ def main():
 
     from mandala import app_paths, settings
     app_paths.ensure_dirs()
+    # config.ini обслуживается только в собранном приложении (Windows);
+    # при запуске из исходников эти вызовы оставляют значения config.py.
     settings.write_template_if_missing()
     settings.upgrade_config_if_old()
     warnings_ = settings.apply_user_settings()

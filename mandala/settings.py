@@ -1,10 +1,14 @@
 """Пользовательские настройки поверх config.py.
 
 Принцип: значения по умолчанию всегда берутся из ``config.py``.
-Дополнительно читается ``config.ini`` (см. ``app_paths.config_path()``)
-и корректные значения применяются к атрибутам класса ``Config``.
-Некорректные значения игнорируются с предупреждением — приложение
-запускается всегда.
+В собранном приложении (PyInstaller/Windows) дополнительно читается
+``config.ini`` (см. ``app_paths.config_path()``), и корректные значения
+применяются к атрибутам класса ``Config``. Некорректные значения
+игнорируются с предупреждением — приложение запускается всегда.
+
+При запуске из исходников (dev, не PyInstaller) параметры берутся
+только из ``config.py``: слой ``config.ini`` не читается и не изменяется
+(см. ``ini_enabled()``).
 
 В собранном приложении шаблон ``config.ini`` с русскими комментариями
 создаётся автоматически при первом запуске; тот же файл правит
@@ -263,11 +267,24 @@ def _apply_color_weight(key_upper, raw):
 # ---------------------------------------------------------------
 # Чтение config.ini
 # ---------------------------------------------------------------
+def ini_enabled():
+    """Активен ли слой config.ini.
+
+    True только в собранном приложении (PyInstaller/Windows). При запуске
+    из исходников параметры берутся только из config.py: файл config.ini
+    не читается и не изменяется — он предназначен для сборки под Windows.
+    """
+    return app_paths.is_frozen()
+
+
 def apply_user_settings(overrides=None, ini_path=None):
     """Сбрасывает Config к умолчаниям и применяет config.ini.
 
     overrides — словарь {ключ: значение} для тестов/отладки,
     ini_path  — явный путь к файлу (по умолчанию app_paths.config_path()).
+    config.ini читается только в собранном приложении либо при явном
+    ini_path; при запуске из исходников поверх config.py применяются
+    только overrides.
     Возвращает список предупреждений.
     """
     global _warnings, _applied
@@ -278,7 +295,9 @@ def apply_user_settings(overrides=None, ini_path=None):
     path = ini_path or app_paths.config_path()
     raw = {}
 
-    if os.path.exists(path):
+    # config.ini читается только в собранном приложении либо когда путь
+    # задан явно (тесты, отладка); в dev-режиме действуют значения config.py.
+    if (ini_path is not None or ini_enabled()) and os.path.exists(path):
         parser = configparser.ConfigParser(
             interpolation=None,
             strict=False,
@@ -496,7 +515,12 @@ def write_template(path=None, values=None, weights=None):
 
 
 def write_template_if_missing(path=None):
-    """Создаёт config.ini при первом запуске собранного приложения."""
+    """Создаёт config.ini при первом запуске собранного приложения.
+
+    В dev-режиме файл не создаётся: параметры берутся из config.py.
+    """
+    if path is None and not ini_enabled():
+        return False
     path = path or app_paths.config_path()
     if not os.path.exists(path):
         write_template(path)
@@ -545,6 +569,8 @@ def upgrade_config_if_old(path=None, ini_path=None):
     Значения известных параметров и весов переносятся, прежний файл
     заменяется без копий. Файл нового формата не трогает.
     """
+    if path is None and ini_path is None and not ini_enabled():
+        return False  # dev-режим: config.ini не обслуживаем
     path = ini_path or path or app_paths.config_path()
     if not os.path.exists(path):
         return False

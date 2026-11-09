@@ -59,9 +59,11 @@ import time
 from .config import Config
 from . import settings
 
-# Пользовательские настройки (config.ini) применяются ДО импорта runtime:
-# тот при импорте создаёт окно и фиксирует Config.WINDOW_SIZE.
-# Если точка входа уже применяла их — повторного чтения не будет.
+# Пользовательские настройки применяются ДО импорта runtime: тот при импорте
+# создаёт окно и фиксирует Config.WINDOW_SIZE. В собранном приложении читается
+# config.ini; при запуске из исходников остаются значения config.py
+# (см. settings.ini_enabled). Если точка входа уже применяла их —
+# повторного чтения не будет.
 _settings_warnings = settings.ensure_applied()
 
 from . import runtime, selection, centers, bands, layers, export, logging_utils
